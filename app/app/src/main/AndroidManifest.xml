@@ -35,10 +35,9 @@
 
         <receiver android:name=".OsmAndReceiver" android:exported="true">
             <intent-filter>
-                <!-- Support receiving the intent back from OsmAnd -->
                 <action android:name="com.example.triangulation.ACTION_TAKE_BACK_AZIMUTH" />
             </intent-filter>
-            <!-- According to OsmAnd Plugin docs, exposing a BroadcastReceiver with a specific metadata makes it register in OsmAnd! -->
+            <!-- Native metadata API approach to register buttons in OsmAnd contexts without compiling the AIDL -->
             <meta-data android:name="osmand_plugin" android:value="true" />
             <meta-data android:name="osmand_context_menu" android:value="true" />
             <meta-data android:name="osmand_action_name" android:value="Take Back-Azimuth" />

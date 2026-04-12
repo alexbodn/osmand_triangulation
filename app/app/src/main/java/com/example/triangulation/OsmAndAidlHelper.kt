@@ -69,7 +69,19 @@ class OsmAndAidlHelper(
 
     fun addContextMenuButton(id: Int, text: String, layerId: String) {
         val button = AContextMenuButton(id, text, text, "ic_action_settings", "ic_action_settings", false, true)
-        val params = ContextMenuButtonsParams(button, button, id.toString(), application.packageName, layerId, 1, emptyList())
+
+        // Ensure pointsIds list is non-null. Passing an empty list tells OsmAnd to show the button
+        // globally across all points in that layer (or globally if layer is standard).
+        val params = ContextMenuButtonsParams(
+            button,
+            button,
+            id.toString(),
+            application.packageName,
+            layerId,
+            1,
+            emptyList()
+        )
+
         try {
             mOsmAndAidlInterface?.addContextMenuButtons(params, callback)
             Log.d("OsmAndAidlHelper", "Successfully registered Context Menu Button: $text")

@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     private lateinit var tvBackAzimuth: TextView
     private lateinit var btnSelect: Button
     private lateinit var btnReset: Button
+    private lateinit var btnRegisterOsmAnd: Button
 
     private var currentAzimuth = 0f
     private var selectedLocations = mutableListOf<Reading>()
@@ -57,6 +58,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         tvBackAzimuth = findViewById(R.id.tvBackAzimuth)
         btnSelect = findViewById(R.id.btnSelect)
         btnReset = findViewById(R.id.btnReset)
+        btnRegisterOsmAnd = findViewById(R.id.btnRegisterOsmAnd)
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
@@ -114,12 +116,19 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             exportAndShowGpx()
         }
 
+        btnRegisterOsmAnd.setOnClickListener {
+            // Using a standard OsmAnd layer ID or empty string to ensure it appears on standard map taps
+            osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "Map")
+            Toast.makeText(this, "Attempted to register button to OsmAnd", Toast.LENGTH_SHORT).show()
+        }
+
         updateResetButton()
     }
 
     override fun onOsmAndServiceConnected() {
         Log.d("Triangulation", "OsmAnd Service Connected. Registering Context Menu Button.")
-        osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "triangulation_layer")
+        // Map is the standard layer id for regular map taps in OsmAnd
+        osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "Map")
     }
 
     override fun onOsmAndServiceDisconnected() {
@@ -218,9 +227,32 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                     try {
                         currentLat = parts[0].toDouble()
                         currentLon = parts[1].toDouble()
+                        return
                     } catch (e: NumberFormatException) {
                         e.printStackTrace()
                     }
+                }
+            }
+        }
+
+        // Handle SEND intents (Share from OsmAnd)
+        if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+            val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+            if (sharedText != null) {
+                // OsmAnd share text usually contains a http://osmand.net/go?lat=X&lon=Y link
+                // or geo:lat,lon format
+                try {
+                    val latRegex = Regex("lat=([0-9.-]+)")
+                    val lonRegex = Regex("lon=([0-9.-]+)")
+                    val latMatch = latRegex.find(sharedText)
+                    val lonMatch = lonRegex.find(sharedText)
+
+                    if (latMatch != null && lonMatch != null) {
+                        currentLat = latMatch.groupValues[1].toDouble()
+                        currentLon = lonMatch.groupValues[1].toDouble()
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }
         }
@@ -312,7 +344,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     override fun onDestroy() {
         super.onDestroy()
-        osmandHelper.unbindService()
+        // Removed unbindService() to allow the AIDL listener to stay alive
+        // for background context menu button clicks.
+        // It's a hack, but without a dedicated foreground service, this ensures the callback works
+        // while the app process is alive.
     }
 
     override fun onSensorChanged(event: SensorEvent?) {

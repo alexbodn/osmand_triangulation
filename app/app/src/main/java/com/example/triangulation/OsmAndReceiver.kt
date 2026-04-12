@@ -3,18 +3,35 @@ package com.example.triangulation
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 
 class OsmAndReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val lat = intent.getDoubleExtra("lat", Double.NaN)
-        val lon = intent.getDoubleExtra("lon", Double.NaN)
+        val lat = intent.getDoubleExtra("LAT", Double.NaN)
+        val lon = intent.getDoubleExtra("LON", Double.NaN)
+        val pointId = intent.getStringExtra("POINT_ID")
 
-        if (!lat.isNaN() && !lon.isNaN()) {
-            val mainIntent = Intent(context, MainActivity::class.java)
-            mainIntent.putExtra("lat", lat)
-            mainIntent.putExtra("lon", lon)
-            mainIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            context.startActivity(mainIntent)
+        Log.d("Triangulation", "OsmAndReceiver received intent. lat=$lat, lon=$lon, pointId=$pointId")
+
+        val mainIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+
+            if (!lat.isNaN() && !lon.isNaN()) {
+                putExtra("lat", lat)
+                putExtra("lon", lon)
+            } else if (pointId != null && pointId.contains(",")) {
+                try {
+                    val parts = pointId.split(",")
+                    putExtra("lat", parts[0].toDouble())
+                    putExtra("lon", parts[1].toDouble())
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            } else {
+                 putExtra("pointId", pointId)
+            }
         }
+
+        context.startActivity(mainIntent)
     }
 }

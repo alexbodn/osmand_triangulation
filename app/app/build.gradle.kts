@@ -5,17 +5,17 @@ plugins {
 
 android {
     namespace = "com.example.triangulation"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.example.triangulation"
         minSdk = 24
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
-
-        setProperty("archivesBaseName", "Triangulation")
     }
+
+    base { archivesName.set("Triangulation") }
 
     signingConfigs {
         create("debugConfig") {
@@ -44,7 +44,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
-        aidl = false
+        aidl = true
     }
 }
 

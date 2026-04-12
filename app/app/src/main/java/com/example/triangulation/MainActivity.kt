@@ -2,6 +2,7 @@ package com.example.triangulation
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -10,8 +11,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.animation.Animation
-import android.view.animation.RotateAnimation
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
@@ -23,8 +22,11 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import android.util.Log
+import android.os.Handler
+import android.os.Looper
 
-class MainActivity : AppCompatActivity(), SensorEventListener {
+class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.OsmAndAidlListener {
 
     private lateinit var sensorManager: SensorManager
     private var rotationVectorSensor: Sensor? = null
@@ -44,6 +46,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private var currentLon: Double? = null
     private var isUserEditing = false
 
+    private lateinit var osmandHelper: OsmAndAidlHelper
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -56,6 +60,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+
+        osmandHelper = OsmAndAidlHelper(application, this)
+        osmandHelper.bindService()
 
         loadState()
         handleIntent(intent)
@@ -95,7 +102,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 exportAndShowGpx()
                 finish() // Will return to OsmAnd map seamlessly with the GPX intent above it
             } else {
-                Toast.makeText(this, "No location selected from OsmAnd", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "No location selected from OsmAnd. Launch app from OsmAnd context menu.", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -104,9 +111,43 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             saveState()
             updateResetButton()
             Toast.makeText(this, "Reset points", Toast.LENGTH_SHORT).show()
+            exportAndShowGpx()
         }
 
         updateResetButton()
+    }
+
+    override fun onOsmAndServiceConnected() {
+        Log.d("Triangulation", "OsmAnd Service Connected. Registering Context Menu Button.")
+        osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "triangulation_layer")
+    }
+
+    override fun onOsmAndServiceDisconnected() {
+        Log.d("Triangulation", "OsmAnd Service Disconnected.")
+    }
+
+    override fun onContextMenuButtonClicked(buttonId: Int, pointId: String?, layerId: String?) {
+        Log.d("Triangulation", "Context Menu Button Clicked: $buttonId, $pointId, $layerId")
+
+        Handler(Looper.getMainLooper()).post {
+            val intent = Intent(this, MainActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+
+            try {
+                if (pointId != null && pointId.contains(",")) {
+                    val parts = pointId.split(",")
+                    val lat = parts[0].toDouble()
+                    val lon = parts[1].toDouble()
+                    intent.putExtra("lat", lat)
+                    intent.putExtra("lon", lon)
+                } else {
+                    intent.putExtra("pointId", pointId)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            startActivity(intent)
+        }
     }
 
     private fun saveState() {
@@ -170,7 +211,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         intent?.data?.let { uri ->
             if (uri.scheme == "geo") {
                 val ssp = uri.schemeSpecificPart
-                val parts = ssp.split(",")
+                // Geo URI looks like geo:lat,lon?z=15
+                val mainPart = ssp.substringBefore('?')
+                val parts = mainPart.split(",")
                 if (parts.size >= 2) {
                     try {
                         currentLat = parts[0].toDouble()
@@ -187,10 +230,18 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         btnReset.text = "Reset (${selectedLocations.size} locations)"
     }
 
-    private fun exportAndShowGpx() {
-        if (selectedLocations.isEmpty()) return
+    private fun getOsmandPackage(): String {
+        val pm = packageManager
+        return try {
+            pm.getPackageInfo("net.osmand.plus", PackageManager.GET_META_DATA)
+            "net.osmand.plus"
+        } catch (e: PackageManager.NameNotFoundException) {
+            "net.osmand"
+        }
+    }
 
-        val gpxStr = StringBuilder()
+    private fun exportAndShowGpx() {
+        val gpxStr = java.lang.StringBuilder()
         gpxStr.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         gpxStr.append("<gpx version=\"1.1\" creator=\"Geolocation Triangulation\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n")
 
@@ -238,7 +289,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
             val intent = Intent(Intent.ACTION_VIEW)
             intent.setDataAndType(contentUri, "application/gpx+xml")
-            intent.setPackage("net.osmand.plus")
+            intent.setPackage(getOsmandPackage())
             intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(intent)
         } catch (e: Exception) {
@@ -257,6 +308,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onPause() {
         super.onPause()
         sensorManager.unregisterListener(this)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        osmandHelper.unbindService()
     }
 
     override fun onSensorChanged(event: SensorEvent?) {

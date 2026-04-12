@@ -104,7 +104,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 exportAndShowGpx()
                 finish() // Will return to OsmAnd map seamlessly with the GPX intent above it
             } else {
-                Toast.makeText(this, "No location selected from OsmAnd. Launch app from OsmAnd context menu.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "No location selected from OsmAnd. Launch app from OsmAnd context menu or share.", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -117,8 +117,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         }
 
         btnRegisterOsmAnd.setOnClickListener {
-            // Using a standard OsmAnd layer ID or empty string to ensure it appears on standard map taps
-            osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "Map")
+            // Registering with an empty layer ID usually acts as a global context menu
+            osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")
             Toast.makeText(this, "Attempted to register button to OsmAnd", Toast.LENGTH_SHORT).show()
         }
 
@@ -127,8 +127,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     override fun onOsmAndServiceConnected() {
         Log.d("Triangulation", "OsmAnd Service Connected. Registering Context Menu Button.")
-        // Map is the standard layer id for regular map taps in OsmAnd
-        osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "Map")
+        // Empty string for layer ID acts as a global registration
+        osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")
     }
 
     override fun onOsmAndServiceDisconnected() {
@@ -239,20 +239,60 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
             if (sharedText != null) {
-                // OsmAnd share text usually contains a http://osmand.net/go?lat=X&lon=Y link
-                // or geo:lat,lon format
-                try {
-                    val latRegex = Regex("lat=([0-9.-]+)")
-                    val lonRegex = Regex("lon=([0-9.-]+)")
-                    val latMatch = latRegex.find(sharedText)
-                    val lonMatch = lonRegex.find(sharedText)
+                Log.d("Triangulation", "Received shared text: $sharedText")
+                var parsedLat: Double? = null
+                var parsedLon: Double? = null
 
-                    if (latMatch != null && lonMatch != null) {
-                        currentLat = latMatch.groupValues[1].toDouble()
-                        currentLon = lonMatch.groupValues[1].toDouble()
+                // 1. Try to find http://osmand.net/go?lat=X&lon=Y
+                val latRegex = Regex("lat=([0-9.-]+)")
+                val lonRegex = Regex("lon=([0-9.-]+)")
+                val latMatch = latRegex.find(sharedText)
+                val lonMatch = lonRegex.find(sharedText)
+
+                if (latMatch != null && lonMatch != null) {
+                    try {
+                        parsedLat = latMatch.groupValues[1].toDouble()
+                        parsedLon = lonMatch.groupValues[1].toDouble()
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
+
+                // 2. Try to find a geo: URI in the shared text
+                if (parsedLat == null || parsedLon == null) {
+                    val geoRegex = Regex("geo:([0-9.-]+),([0-9.-]+)")
+                    val geoMatch = geoRegex.find(sharedText)
+                    if (geoMatch != null) {
+                        try {
+                            parsedLat = geoMatch.groupValues[1].toDouble()
+                            parsedLon = geoMatch.groupValues[2].toDouble()
+                        } catch (e: Exception) { e.printStackTrace() }
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                }
+
+                // 3. Try to just find any two decimals that look like coordinates
+                // e.g. "My Location is 37.123, -122.456"
+                if (parsedLat == null || parsedLon == null) {
+                    val fallbackRegex = Regex("([0-9]{1,2}\\.[0-9]+)[^0-9.-]+([0-9]{1,3}\\.[0-9]+)")
+                    val fallbackMatch = fallbackRegex.find(sharedText)
+                    if (fallbackMatch != null) {
+                        try {
+                            // Quick sanity check - check for negative signs before the matched numbers just in case
+                            val latStr = sharedText.substring(Math.max(0, fallbackMatch.groups[1]!!.range.first - 1), fallbackMatch.groups[1]!!.range.last + 1)
+                            val lonStr = sharedText.substring(Math.max(0, fallbackMatch.groups[2]!!.range.first - 1), fallbackMatch.groups[2]!!.range.last + 1)
+
+                            parsedLat = if(latStr.startsWith("-")) -1 * fallbackMatch.groupValues[1].toDouble() else fallbackMatch.groupValues[1].toDouble()
+                            parsedLon = if(lonStr.startsWith("-")) -1 * fallbackMatch.groupValues[2].toDouble() else fallbackMatch.groupValues[2].toDouble()
+
+                        } catch (e: Exception) { e.printStackTrace() }
+                    }
+                }
+
+                if (parsedLat != null && parsedLon != null) {
+                    currentLat = parsedLat
+                    currentLon = parsedLon
+                    Toast.makeText(this, "Received coordinates: $currentLat, $currentLon", Toast.LENGTH_SHORT).show()
+                } else {
+                    // Fallback to show user the failure
+                    Toast.makeText(this, "Could not parse coordinates from: $sharedText", Toast.LENGTH_LONG).show()
                 }
             }
         }

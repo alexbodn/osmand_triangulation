@@ -87,6 +87,15 @@
         </LinearLayout>
 
         <TextView
+            android:id="@+id/tvDeclination"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Declination: 0.0°"
+            android:visibility="gone"
+            android:textColor="@android:color/holo_blue_dark" />
+
+        <TextView
             android:id="@+id/tvBackAzimuth"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

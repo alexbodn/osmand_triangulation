@@ -17,6 +17,11 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <!-- Register as an OsmAnd Plugin component using meta-data -->
+        <meta-data
+            android:name="net.osmand.plugin"
+            android:value="Triangulation" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -38,16 +43,13 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
-
-            <!-- Register as an OsmAnd Plugin component so it appears deeply integrated -->
-            <intent-filter>
-                <action android:name="net.osmand.plugin" />
-            </intent-filter>
         </activity>
 
         <receiver android:name=".OsmAndReceiver" android:exported="true">
+            <!-- Used if OsmAnd triggers custom action via broadcast -->
             <intent-filter>
                 <action android:name="com.example.triangulation.ACTION_TAKE_BACK_AZIMUTH" />
+                <action android:name="net.osmand.plugin" />
             </intent-filter>
         </receiver>
 

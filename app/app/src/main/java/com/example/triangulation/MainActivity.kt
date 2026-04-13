@@ -11,6 +11,7 @@ import android.hardware.GeomagneticField
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
@@ -36,6 +37,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     private lateinit var ivArrow: ImageView
     private lateinit var etAzimuth: EditText
     private lateinit var tvBackAzimuth: TextView
+    private lateinit var tvDeclination: TextView
     private lateinit var btnSelect: Button
     private lateinit var btnReset: Button
     private lateinit var btnRegisterOsmAnd: Button
@@ -59,6 +61,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         ivArrow = findViewById(R.id.ivArrow)
         etAzimuth = findViewById(R.id.etAzimuth)
         tvBackAzimuth = findViewById(R.id.tvBackAzimuth)
+        tvDeclination = findViewById(R.id.tvDeclination)
         btnSelect = findViewById(R.id.btnSelect)
         btnReset = findViewById(R.id.btnReset)
         btnRegisterOsmAnd = findViewById(R.id.btnRegisterOsmAnd)
@@ -106,9 +109,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             if (currentLat != null && currentLon != null) {
                 var azimuthToUse = currentAzimuth
 
-                // If magnetic is checked, adjust back to true north based on the target point
                 if (cbMagnetic.isChecked) {
-                    // Try to find the intersection point first
                     var declinationTargetLat = currentLat!!
                     var declinationTargetLon = currentLon!!
 
@@ -235,16 +236,35 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     private fun updateBackAzimuthDisplay() {
         var azimuthToDisplay = currentAzimuth
         if (cbMagnetic.isChecked && currentLat != null && currentLon != null) {
-            // Use target location for interactive UI display
+            // Use intersection target if possible, otherwise use current
+            var declinationTargetLat = currentLat!!
+            var declinationTargetLon = currentLon!!
+
+            if (selectedLocations.isNotEmpty()) {
+                val fakeCurrentReading = Reading(currentLat!!, currentLon!!, currentAzimuth, (currentAzimuth + 180f) % 360f)
+                val r1 = selectedLocations.last()
+                val intersection = calculateIntersection(r1, fakeCurrentReading)
+                if (intersection != null) {
+                    declinationTargetLat = intersection.first
+                    declinationTargetLon = intersection.second
+                }
+            }
+
             val geoField = GeomagneticField(
-                currentLat!!.toFloat(),
-                currentLon!!.toFloat(),
+                declinationTargetLat.toFloat(),
+                declinationTargetLon.toFloat(),
                 0f,
                 System.currentTimeMillis()
             )
+
+            tvDeclination.visibility = View.VISIBLE
+            tvDeclination.text = "Declination applied: ${String.format("%.1f", geoField.declination)}°"
+
             azimuthToDisplay += geoField.declination
             if (azimuthToDisplay >= 360f) azimuthToDisplay -= 360f
             if (azimuthToDisplay < 0f) azimuthToDisplay += 360f
+        } else {
+            tvDeclination.visibility = View.GONE
         }
 
         val backAzimuth = (azimuthToDisplay + 180) % 360

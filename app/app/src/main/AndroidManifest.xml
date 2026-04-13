@@ -38,6 +38,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+
+            <!-- Register as an OsmAnd Plugin component so it appears deeply integrated -->
+            <intent-filter>
+                <action android:name="net.osmand.plugin" />
+            </intent-filter>
         </activity>
 
         <receiver android:name=".OsmAndReceiver" android:exported="true">

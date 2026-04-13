@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.graphics.Color
 import android.os.IBinder
 import android.os.RemoteException
 import android.util.Log
@@ -12,6 +13,7 @@ import net.osmand.aidl.IOsmAndAidlCallback
 import net.osmand.aidl.IOsmAndAidlInterface
 import net.osmand.aidl.contextmenu.AContextMenuButton
 import net.osmand.aidl.contextmenu.ContextMenuButtonsParams
+import net.osmand.aidl.gpx.ImportGpxParams
 
 class OsmAndAidlHelper(
     private val application: Application,
@@ -69,24 +71,23 @@ class OsmAndAidlHelper(
 
     fun addContextMenuButton(id: Int, text: String, layerId: String) {
         val button = AContextMenuButton(id, text, text, "ic_action_settings", "ic_action_settings", false, true)
-
-        // Ensure pointsIds list is non-null. Passing an empty list tells OsmAnd to show the button
-        // globally across all points in that layer (or globally if layer is standard).
-        val params = ContextMenuButtonsParams(
-            button,
-            button,
-            id.toString(),
-            application.packageName,
-            layerId,
-            1,
-            emptyList()
-        )
-
+        val params = ContextMenuButtonsParams(button, button, id.toString(), application.packageName, layerId, 1, emptyList())
         try {
             mOsmAndAidlInterface?.addContextMenuButtons(params, callback)
             Log.d("OsmAndAidlHelper", "Successfully registered Context Menu Button: $text")
         } catch (e: RemoteException) {
             Log.e("OsmAndAidlHelper", "Failed to register Context Menu Button", e)
+            e.printStackTrace()
+        }
+    }
+
+    fun importGpxFromData(data: String, fileName: String, color: String, show: Boolean) {
+        val params = ImportGpxParams(data, fileName, color, show)
+        try {
+            mOsmAndAidlInterface?.importGpx(params)
+            Log.d("OsmAndAidlHelper", "Successfully imported GPX string via AIDL: $fileName")
+        } catch (e: RemoteException) {
+            Log.e("OsmAndAidlHelper", "Failed to import GPX string via AIDL", e)
             e.printStackTrace()
         }
     }

@@ -7,7 +7,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.net.Uri
+import android.hardware.GeomagneticField
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -16,15 +16,17 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.CheckBox
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.FileProvider
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
-import java.io.FileOutputStream
 import android.util.Log
 import android.os.Handler
 import android.os.Looper
+import kotlin.math.asin
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 
 class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.OsmAndAidlListener {
 
@@ -37,6 +39,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     private lateinit var btnSelect: Button
     private lateinit var btnReset: Button
     private lateinit var btnRegisterOsmAnd: Button
+    private lateinit var cbMagnetic: CheckBox
 
     private var currentAzimuth = 0f
     private var selectedLocations = mutableListOf<Reading>()
@@ -59,6 +62,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         btnSelect = findViewById(R.id.btnSelect)
         btnReset = findViewById(R.id.btnReset)
         btnRegisterOsmAnd = findViewById(R.id.btnRegisterOsmAnd)
+        cbMagnetic = findViewById(R.id.cbMagnetic)
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
@@ -94,15 +98,48 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             }
         })
 
+        cbMagnetic.setOnCheckedChangeListener { _, _ ->
+            updateBackAzimuthDisplay()
+        }
+
         btnSelect.setOnClickListener {
             if (currentLat != null && currentLon != null) {
-                val backAzimuth = (currentAzimuth + 180) % 360
-                selectedLocations.add(Reading(currentLat!!, currentLon!!, currentAzimuth, backAzimuth))
+                var azimuthToUse = currentAzimuth
+
+                // If magnetic is checked, adjust back to true north based on the target point
+                if (cbMagnetic.isChecked) {
+                    // Try to find the intersection point first
+                    var declinationTargetLat = currentLat!!
+                    var declinationTargetLon = currentLon!!
+
+                    if (selectedLocations.isNotEmpty()) {
+                        val fakeCurrentReading = Reading(currentLat!!, currentLon!!, currentAzimuth, (currentAzimuth + 180f) % 360f)
+                        val r1 = selectedLocations.last()
+                        val intersection = calculateIntersection(r1, fakeCurrentReading)
+                        if (intersection != null) {
+                            declinationTargetLat = intersection.first
+                            declinationTargetLon = intersection.second
+                        }
+                    }
+
+                    val geoField = GeomagneticField(
+                        declinationTargetLat.toFloat(),
+                        declinationTargetLon.toFloat(),
+                        0f,
+                        System.currentTimeMillis()
+                    )
+                    azimuthToUse += geoField.declination
+                    if (azimuthToUse >= 360f) azimuthToUse -= 360f
+                    if (azimuthToUse < 0f) azimuthToUse += 360f
+                }
+
+                val backAzimuth = (azimuthToUse + 180) % 360
+                selectedLocations.add(Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth))
                 saveState()
                 updateResetButton()
-                Toast.makeText(this, "Reading saved. Drawing on Map...", Toast.LENGTH_SHORT).show()
-                exportAndShowGpx()
-                finish() // Will return to OsmAnd map seamlessly with the GPX intent above it
+                Toast.makeText(this, "Reading saved. Silently importing to OsmAnd...", Toast.LENGTH_SHORT).show()
+                drawTriangulationPointsOnMap()
+                finish()
             } else {
                 Toast.makeText(this, "No location selected from OsmAnd. Launch app from OsmAnd context menu or share.", Toast.LENGTH_SHORT).show()
             }
@@ -113,11 +150,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             saveState()
             updateResetButton()
             Toast.makeText(this, "Reset points", Toast.LENGTH_SHORT).show()
-            exportAndShowGpx()
+            drawTriangulationPointsOnMap() // Redraws empty layer
         }
 
         btnRegisterOsmAnd.setOnClickListener {
-            // Registering with an empty layer ID usually acts as a global context menu
             osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")
             Toast.makeText(this, "Attempted to register button to OsmAnd", Toast.LENGTH_SHORT).show()
         }
@@ -127,7 +163,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     override fun onOsmAndServiceConnected() {
         Log.d("Triangulation", "OsmAnd Service Connected. Registering Context Menu Button.")
-        // Empty string for layer ID acts as a global registration
         osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")
     }
 
@@ -198,7 +233,21 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     }
 
     private fun updateBackAzimuthDisplay() {
-        val backAzimuth = (currentAzimuth + 180) % 360
+        var azimuthToDisplay = currentAzimuth
+        if (cbMagnetic.isChecked && currentLat != null && currentLon != null) {
+            // Use target location for interactive UI display
+            val geoField = GeomagneticField(
+                currentLat!!.toFloat(),
+                currentLon!!.toFloat(),
+                0f,
+                System.currentTimeMillis()
+            )
+            azimuthToDisplay += geoField.declination
+            if (azimuthToDisplay >= 360f) azimuthToDisplay -= 360f
+            if (azimuthToDisplay < 0f) azimuthToDisplay += 360f
+        }
+
+        val backAzimuth = (azimuthToDisplay + 180) % 360
         tvBackAzimuth.text = "Back-Azimuth: ${String.format("%.1f", backAzimuth)}°"
     }
 
@@ -239,11 +288,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
             if (sharedText != null) {
-                Log.d("Triangulation", "Received shared text: $sharedText")
                 var parsedLat: Double? = null
                 var parsedLon: Double? = null
 
-                // 1. Try to find http://osmand.net/go?lat=X&lon=Y
                 val latRegex = Regex("lat=([0-9.-]+)")
                 val lonRegex = Regex("lon=([0-9.-]+)")
                 val latMatch = latRegex.find(sharedText)
@@ -256,7 +303,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                     } catch (e: Exception) { e.printStackTrace() }
                 }
 
-                // 2. Try to find a geo: URI in the shared text
                 if (parsedLat == null || parsedLon == null) {
                     val geoRegex = Regex("geo:([0-9.-]+),([0-9.-]+)")
                     val geoMatch = geoRegex.find(sharedText)
@@ -268,14 +314,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                     }
                 }
 
-                // 3. Try to just find any two decimals that look like coordinates
-                // e.g. "My Location is 37.123, -122.456"
                 if (parsedLat == null || parsedLon == null) {
                     val fallbackRegex = Regex("([0-9]{1,2}\\.[0-9]+)[^0-9.-]+([0-9]{1,3}\\.[0-9]+)")
                     val fallbackMatch = fallbackRegex.find(sharedText)
                     if (fallbackMatch != null) {
                         try {
-                            // Quick sanity check - check for negative signs before the matched numbers just in case
                             val latStr = sharedText.substring(Math.max(0, fallbackMatch.groups[1]!!.range.first - 1), fallbackMatch.groups[1]!!.range.last + 1)
                             val lonStr = sharedText.substring(Math.max(0, fallbackMatch.groups[2]!!.range.first - 1), fallbackMatch.groups[2]!!.range.last + 1)
 
@@ -291,7 +334,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                     currentLon = parsedLon
                     Toast.makeText(this, "Received coordinates: $currentLat, $currentLon", Toast.LENGTH_SHORT).show()
                 } else {
-                    // Fallback to show user the failure
                     Toast.makeText(this, "Could not parse coordinates from: $sharedText", Toast.LENGTH_LONG).show()
                 }
             }
@@ -302,20 +344,79 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         btnReset.text = "Reset (${selectedLocations.size} locations)"
     }
 
-    private fun getOsmandPackage(): String {
-        val pm = packageManager
-        return try {
-            pm.getPackageInfo("net.osmand.plus", PackageManager.GET_META_DATA)
-            "net.osmand.plus"
-        } catch (e: PackageManager.NameNotFoundException) {
-            "net.osmand"
-        }
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val R = 6371.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = sin(dLat/2) * sin(dLat/2) +
+                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+                sin(dLon/2) * sin(dLon/2)
+        val c = 2 * atan2(Math.sqrt(a), Math.sqrt(1-a))
+        return R * c
     }
 
-    private fun exportAndShowGpx() {
+    private fun calculateDestination(lat: Double, lon: Double, bearing: Double, distanceKm: Double): Pair<Double, Double> {
+        val R = 6371.0
+        val lat1 = Math.toRadians(lat)
+        val lon1 = Math.toRadians(lon)
+        val brng = Math.toRadians(bearing)
+
+        var lat2 = asin(sin(lat1) * cos(distanceKm / R) +
+                cos(lat1) * sin(distanceKm / R) * cos(brng))
+        var lon2 = lon1 + atan2(sin(brng) * sin(distanceKm / R) * cos(lat1),
+                cos(distanceKm / R) - sin(lat1) * sin(lat2))
+
+        return Pair(Math.toDegrees(lat2), Math.toDegrees(lon2))
+    }
+
+    private fun calculateIntersection(r1: Reading, r2: Reading): Pair<Double, Double>? {
+        val lat1 = Math.toRadians(r1.lat)
+        val lon1 = Math.toRadians(r1.lon)
+        val brng1 = Math.toRadians(r1.backAzimuth.toDouble())
+
+        val lat2 = Math.toRadians(r2.lat)
+        val lon2 = Math.toRadians(r2.lon)
+        val brng2 = Math.toRadians(r2.backAzimuth.toDouble())
+
+        val dLat = lat2 - lat1
+        val dLon = lon2 - lon1
+
+        val dist12 = 2 * asin(Math.sqrt(sin(dLat/2)*sin(dLat/2) + cos(lat1)*cos(lat2)*sin(dLon/2)*sin(dLon/2)))
+        if (dist12 == 0.0) return null
+
+        val brngA = Math.acos((sin(lat2) - sin(lat1)*cos(dist12)) / (sin(dist12)*cos(lat1)))
+        val brngB = Math.acos((sin(lat1) - sin(lat2)*cos(dist12)) / (sin(dist12)*cos(lat2)))
+
+        val brng12 = if (sin(lon2-lon1) > 0) brngA else 2*Math.PI - brngA
+        val brng21 = if (sin(lon2-lon1) > 0) 2*Math.PI - brngB else brngB
+
+        val alpha1 = (brng1 - brng12 + Math.PI) % (2*Math.PI) - Math.PI
+        val alpha2 = (brng21 - brng2 + Math.PI) % (2*Math.PI) - Math.PI
+
+        if (sin(alpha1) == 0.0 && sin(alpha2) == 0.0) return null
+        if (sin(alpha1)*sin(alpha2) < 0) return null
+
+        val alpha3 = Math.acos(-cos(alpha1)*cos(alpha2) + sin(alpha1)*sin(alpha2)*cos(dist12))
+        val dist13 = atan2(sin(dist12)*sin(alpha1)*sin(alpha2), cos(alpha2) + cos(alpha1)*cos(alpha3))
+
+        val lat3 = asin(sin(lat1)*cos(dist13) + cos(lat1)*sin(dist13)*cos(brng1))
+        val dLon13 = atan2(sin(brng1)*sin(dist13)*cos(lat1), cos(dist13) - sin(lat1)*sin(lat3))
+        val lon3 = lon1 + dLon13
+
+        return Pair(Math.toDegrees(lat3), Math.toDegrees(lon3))
+    }
+
+    private fun drawTriangulationPointsOnMap() {
         val gpxStr = java.lang.StringBuilder()
         gpxStr.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         gpxStr.append("<gpx version=\"1.1\" creator=\"Geolocation Triangulation\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n")
+
+        var intersection: Pair<Double, Double>? = null
+        if (selectedLocations.size >= 2) {
+             val r1 = selectedLocations[selectedLocations.size - 2]
+             val r2 = selectedLocations[selectedLocations.size - 1]
+             intersection = calculateIntersection(r1, r2)
+        }
 
         gpxStr.append("  <trk>\n")
         gpxStr.append("    <name>Triangulation Lines</name>\n")
@@ -323,22 +424,15 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             gpxStr.append("    <trkseg>\n")
             gpxStr.append("      <trkpt lat=\"${reading.lat}\" lon=\"${reading.lon}\"></trkpt>\n")
 
-            val dist = 50.0 // 50 km
-            val earthRadius = 6371.0
+            val dist = if (intersection != null) {
+                calculateDistance(reading.lat, reading.lon, intersection.first, intersection.second) * 1.5
+            } else {
+                50.0 // Default 50km
+            }
 
-            val lat1 = Math.toRadians(reading.lat)
-            val lon1 = Math.toRadians(reading.lon)
-            val brng = Math.toRadians(reading.backAzimuth.toDouble())
+            val point2 = calculateDestination(reading.lat, reading.lon, reading.backAzimuth.toDouble(), dist)
 
-            var lat2 = Math.asin(Math.sin(lat1) * Math.cos(dist / earthRadius) +
-                    Math.cos(lat1) * Math.sin(dist / earthRadius) * Math.cos(brng))
-            var lon2 = lon1 + Math.atan2(Math.sin(brng) * Math.sin(dist / earthRadius) * Math.cos(lat1),
-                    Math.cos(dist / earthRadius) - Math.sin(lat1) * Math.sin(lat2))
-
-            lat2 = Math.toDegrees(lat2)
-            lon2 = Math.toDegrees(lon2)
-
-            gpxStr.append("      <trkpt lat=\"${lat2}\" lon=\"${lon2}\"></trkpt>\n")
+            gpxStr.append("      <trkpt lat=\"${point2.first}\" lon=\"${point2.second}\"></trkpt>\n")
             gpxStr.append("    </trkseg>\n")
         }
         gpxStr.append("  </trk>\n")
@@ -349,25 +443,16 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             gpxStr.append("  </wpt>\n")
         }
 
+        if (intersection != null) {
+            gpxStr.append("  <wpt lat=\"${intersection.first}\" lon=\"${intersection.second}\">\n")
+            gpxStr.append("    <name>Intersection</name>\n")
+            gpxStr.append("  </wpt>\n")
+        }
+
         gpxStr.append("</gpx>\n")
 
-        try {
-            val file = File(cacheDir, "triangulation.gpx")
-            FileOutputStream(file).use {
-                it.write(gpxStr.toString().toByteArray())
-            }
-
-            val contentUri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
-
-            val intent = Intent(Intent.ACTION_VIEW)
-            intent.setDataAndType(contentUri, "application/gpx+xml")
-            intent.setPackage(getOsmandPackage())
-            intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
-            startActivity(intent)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this, "Failed to send to OsmAnd", Toast.LENGTH_SHORT).show()
-        }
+        // Pass to AIDL to silently import and display
+        osmandHelper.importGpxFromData(gpxStr.toString(), "triangulation.gpx", "red", true)
     }
 
     override fun onResume() {
@@ -384,10 +469,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     override fun onDestroy() {
         super.onDestroy()
-        // Removed unbindService() to allow the AIDL listener to stay alive
-        // for background context menu button clicks.
-        // It's a hack, but without a dedicated foreground service, this ensures the callback works
-        // while the app process is alive.
+        osmandHelper.unbindService() // Prevent memory leak by correctly unbinding the AIDL service
     }
 
     override fun onSensorChanged(event: SensorEvent?) {

@@ -77,6 +77,13 @@
                 android:layout_height="wrap_content"
                 android:text="°"
                 android:textStyle="bold" />
+
+            <CheckBox
+                android:id="@+id/cbMagnetic"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Magnetic" />
         </LinearLayout>
 
         <TextView

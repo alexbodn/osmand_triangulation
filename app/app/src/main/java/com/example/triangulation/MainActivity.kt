@@ -24,6 +24,7 @@ import org.json.JSONObject
 import android.util.Log
 import android.os.Handler
 import android.os.Looper
+import android.graphics.Color
 import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -43,7 +44,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     private lateinit var btnRegisterOsmAnd: Button
     private lateinit var cbMagnetic: CheckBox
 
-    private var currentAzimuth = 0f
+    private var baseAzimuth = 0f // The raw or user-inputted azimuth BEFORE declination
     private var selectedLocations = mutableListOf<Reading>()
 
     data class Reading(val lat: Double, val lon: Double, val azimuth: Float, val backAzimuth: Float)
@@ -78,6 +79,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
         etAzimuth.setOnFocusChangeListener { _, hasFocus ->
             isUserEditing = hasFocus
+            if (!hasFocus) {
+                updateBackAzimuthDisplay(true)
+            }
         }
 
         etAzimuth.addTextChangedListener(object : TextWatcher {
@@ -90,11 +94,17 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                         try {
                             val azimuth = azimuthStr.toFloat()
                             if (azimuth in 0f..360f) {
-                                currentAzimuth = azimuth
-                                updateBackAzimuthDisplay()
+                                var declination = 0f
+                                if (cbMagnetic.isChecked) {
+                                    declination = calculateCurrentDeclination()
+                                }
+                                baseAzimuth = azimuth - declination
+                                if (baseAzimuth < 0) baseAzimuth += 360f
+                                if (baseAzimuth >= 360) baseAzimuth -= 360f
+
+                                updateBackAzimuthDisplay(false)
                             }
                         } catch (e: NumberFormatException) {
-                            // Ignored
                         }
                     }
                 }
@@ -102,34 +112,15 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         })
 
         cbMagnetic.setOnCheckedChangeListener { _, _ ->
-            updateBackAzimuthDisplay()
+            updateBackAzimuthDisplay(true)
         }
 
         btnSelect.setOnClickListener {
             if (currentLat != null && currentLon != null) {
-                var azimuthToUse = currentAzimuth
+                var azimuthToUse = baseAzimuth
 
                 if (cbMagnetic.isChecked) {
-                    var declinationTargetLat = currentLat!!
-                    var declinationTargetLon = currentLon!!
-
-                    if (selectedLocations.isNotEmpty()) {
-                        val fakeCurrentReading = Reading(currentLat!!, currentLon!!, currentAzimuth, (currentAzimuth + 180f) % 360f)
-                        val r1 = selectedLocations.last()
-                        val intersection = calculateIntersection(r1, fakeCurrentReading)
-                        if (intersection != null) {
-                            declinationTargetLat = intersection.first
-                            declinationTargetLon = intersection.second
-                        }
-                    }
-
-                    val geoField = GeomagneticField(
-                        declinationTargetLat.toFloat(),
-                        declinationTargetLon.toFloat(),
-                        0f,
-                        System.currentTimeMillis()
-                    )
-                    azimuthToUse += geoField.declination
+                    azimuthToUse += calculateCurrentDeclination()
                     if (azimuthToUse >= 360f) azimuthToUse -= 360f
                     if (azimuthToUse < 0f) azimuthToUse += 360f
                 }
@@ -138,9 +129,19 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 selectedLocations.add(Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth))
                 saveState()
                 updateResetButton()
-                Toast.makeText(this, "Reading saved. Silently importing to OsmAnd...", Toast.LENGTH_SHORT).show()
-                drawTriangulationPointsOnMap()
-                finish()
+                Toast.makeText(this, "Reading saved. Drawing directly on Map...", Toast.LENGTH_SHORT).show()
+
+                // Draw map points and return to OsmAnd
+                Handler(Looper.getMainLooper()).postDelayed({
+                    drawTriangulationPointsOnMap()
+                    val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                        ?: packageManager.getLaunchIntentForPackage("net.osmand")
+                    if (launchIntent != null) {
+                        launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        startActivity(launchIntent)
+                    }
+                    finish()
+                }, 500)
             } else {
                 Toast.makeText(this, "No location selected from OsmAnd. Launch app from OsmAnd context menu or share.", Toast.LENGTH_SHORT).show()
             }
@@ -151,7 +152,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             saveState()
             updateResetButton()
             Toast.makeText(this, "Reset points", Toast.LENGTH_SHORT).show()
-            drawTriangulationPointsOnMap() // Redraws empty layer
         }
 
         btnRegisterOsmAnd.setOnClickListener {
@@ -162,9 +162,33 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         updateResetButton()
     }
 
+    private fun calculateCurrentDeclination(): Float {
+        var declinationTargetLat = currentLat ?: 0.0
+        var declinationTargetLon = currentLon ?: 0.0
+
+        if (selectedLocations.isNotEmpty()) {
+            val fakeCurrentReading = Reading(declinationTargetLat, declinationTargetLon, baseAzimuth, (baseAzimuth + 180f) % 360f)
+            val r1 = selectedLocations.last()
+            val intersection = calculateIntersection(r1, fakeCurrentReading)
+            if (intersection != null) {
+                declinationTargetLat = intersection.first
+                declinationTargetLon = intersection.second
+            }
+        }
+
+        val geoField = GeomagneticField(
+            declinationTargetLat.toFloat(),
+            declinationTargetLon.toFloat(),
+            0f,
+            System.currentTimeMillis()
+        )
+        return geoField.declination
+    }
+
     override fun onOsmAndServiceConnected() {
         Log.d("Triangulation", "OsmAnd Service Connected. Registering Context Menu Button.")
         osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")
+        osmandHelper.addMapLayer("triangulation_layer", "Triangulation Points")
     }
 
     override fun onOsmAndServiceDisconnected() {
@@ -233,38 +257,23 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         }
     }
 
-    private fun updateBackAzimuthDisplay() {
-        var azimuthToDisplay = currentAzimuth
-        if (cbMagnetic.isChecked && currentLat != null && currentLon != null) {
-            // Use intersection target if possible, otherwise use current
-            var declinationTargetLat = currentLat!!
-            var declinationTargetLon = currentLon!!
+    private fun updateBackAzimuthDisplay(forceUpdateEditText: Boolean = false) {
+        var azimuthToDisplay = baseAzimuth
 
-            if (selectedLocations.isNotEmpty()) {
-                val fakeCurrentReading = Reading(currentLat!!, currentLon!!, currentAzimuth, (currentAzimuth + 180f) % 360f)
-                val r1 = selectedLocations.last()
-                val intersection = calculateIntersection(r1, fakeCurrentReading)
-                if (intersection != null) {
-                    declinationTargetLat = intersection.first
-                    declinationTargetLon = intersection.second
-                }
-            }
-
-            val geoField = GeomagneticField(
-                declinationTargetLat.toFloat(),
-                declinationTargetLon.toFloat(),
-                0f,
-                System.currentTimeMillis()
-            )
-
+        if (cbMagnetic.isChecked) {
+            val declination = calculateCurrentDeclination()
             tvDeclination.visibility = View.VISIBLE
-            tvDeclination.text = "Declination applied: ${String.format("%.1f", geoField.declination)}°"
+            tvDeclination.text = "Declination applied: ${String.format("%.1f", declination)}°"
 
-            azimuthToDisplay += geoField.declination
+            azimuthToDisplay += declination
             if (azimuthToDisplay >= 360f) azimuthToDisplay -= 360f
             if (azimuthToDisplay < 0f) azimuthToDisplay += 360f
         } else {
             tvDeclination.visibility = View.GONE
+        }
+
+        if (!isUserEditing || forceUpdateEditText) {
+            etAzimuth.setText(String.format("%.1f", azimuthToDisplay))
         }
 
         val backAzimuth = (azimuthToDisplay + 180) % 360
@@ -289,7 +298,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         intent?.data?.let { uri ->
             if (uri.scheme == "geo") {
                 val ssp = uri.schemeSpecificPart
-                // Geo URI looks like geo:lat,lon?z=15
                 val mainPart = ssp.substringBefore('?')
                 val parts = mainPart.split(",")
                 if (parts.size >= 2) {
@@ -304,7 +312,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             }
         }
 
-        // Handle SEND intents (Share from OsmAnd)
         if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
             if (sharedText != null) {
@@ -427,10 +434,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     }
 
     private fun drawTriangulationPointsOnMap() {
-        val gpxStr = java.lang.StringBuilder()
-        gpxStr.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        gpxStr.append("<gpx version=\"1.1\" creator=\"Geolocation Triangulation\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n")
-
         var intersection: Pair<Double, Double>? = null
         if (selectedLocations.size >= 2) {
              val r1 = selectedLocations[selectedLocations.size - 2]
@@ -438,41 +441,28 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
              intersection = calculateIntersection(r1, r2)
         }
 
-        gpxStr.append("  <trk>\n")
-        gpxStr.append("    <name>Triangulation Lines</name>\n")
+        var pointCount = 0
         for (reading in selectedLocations) {
-            gpxStr.append("    <trkseg>\n")
-            gpxStr.append("      <trkpt lat=\"${reading.lat}\" lon=\"${reading.lon}\"></trkpt>\n")
-
-            val dist = if (intersection != null) {
+            val distKm = if (intersection != null) {
                 calculateDistance(reading.lat, reading.lon, intersection.first, intersection.second) * 1.5
             } else {
                 50.0 // Default 50km
             }
 
-            val point2 = calculateDestination(reading.lat, reading.lon, reading.backAzimuth.toDouble(), dist)
-
-            gpxStr.append("      <trkpt lat=\"${point2.first}\" lon=\"${point2.second}\"></trkpt>\n")
-            gpxStr.append("    </trkseg>\n")
-        }
-        gpxStr.append("  </trk>\n")
-
-        for (reading in selectedLocations) {
-            gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
-            gpxStr.append("    <name>Back Azimuth ${String.format("%.1f", reading.backAzimuth)}°</name>\n")
-            gpxStr.append("  </wpt>\n")
+            // To simulate drawing a line using map points natively (as requested by User for Map Layer integration option B)
+            // we calculate intermediate coordinate positions every 1km
+            val steps = Math.max(1, distKm.toInt())
+            for (i in 0..steps) {
+                val currentDist = (distKm / steps) * i
+                val point = calculateDestination(reading.lat, reading.lon, reading.backAzimuth.toDouble(), currentDist)
+                osmandHelper.addMapPoint("triangulation_layer", "t_line_${pointCount}_$i", point.first, point.second, if (i==0) "Origin" else "", Color.RED)
+            }
+            pointCount++
         }
 
         if (intersection != null) {
-            gpxStr.append("  <wpt lat=\"${intersection.first}\" lon=\"${intersection.second}\">\n")
-            gpxStr.append("    <name>Intersection</name>\n")
-            gpxStr.append("  </wpt>\n")
+            osmandHelper.addMapPoint("triangulation_layer", "t_intersection", intersection.first, intersection.second, "Intersection", Color.BLUE)
         }
-
-        gpxStr.append("</gpx>\n")
-
-        // Pass to AIDL to silently import and display
-        osmandHelper.importGpxFromData(gpxStr.toString(), "triangulation.gpx", "red", true)
     }
 
     override fun onResume() {
@@ -489,7 +479,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     override fun onDestroy() {
         super.onDestroy()
-        osmandHelper.unbindService() // Prevent memory leak by correctly unbinding the AIDL service
+        osmandHelper.unbindService()
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -507,10 +497,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 azimuthInDegrees += 360f
             }
 
-            currentAzimuth = azimuthInDegrees
-
-            etAzimuth.setText(String.format("%.1f", azimuthInDegrees))
-            updateBackAzimuthDisplay()
+            baseAzimuth = azimuthInDegrees
+            updateBackAzimuthDisplay(false)
         }
     }
 

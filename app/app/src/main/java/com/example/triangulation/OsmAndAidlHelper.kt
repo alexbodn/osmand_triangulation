@@ -13,8 +13,7 @@ import net.osmand.aidl.IOsmAndAidlCallback
 import net.osmand.aidl.IOsmAndAidlInterface
 import net.osmand.aidl.contextmenu.AContextMenuButton
 import net.osmand.aidl.contextmenu.ContextMenuButtonsParams
-import net.osmand.aidl.maplayer.AddMapLayerParams
-import net.osmand.aidl.maplayer.point.AddMapPointParams
+import net.osmand.aidl.gpx.ImportGpxParams
 
 class OsmAndAidlHelper(
     private val application: Application,
@@ -71,6 +70,7 @@ class OsmAndAidlHelper(
     }
 
     fun addContextMenuButton(id: Int, text: String, layerId: String): Boolean {
+        // Use the exact AIDL layout downloaded which uses int buttonId
         val button = AContextMenuButton(id, text, text, "ic_action_settings", "ic_action_settings", false, true)
         val params = ContextMenuButtonsParams(button, button, id.toString(), application.packageName, layerId, 1, emptyList())
         return try {
@@ -84,27 +84,14 @@ class OsmAndAidlHelper(
         }
     }
 
-    fun addMapLayer(layerId: String, layerName: String): Boolean {
-        val params = AddMapLayerParams(layerId, layerName, 5.0f)
+    fun importGpxFromData(data: String, fileName: String, color: String, show: Boolean): Boolean {
+        val params = ImportGpxParams(data, fileName, color, show)
         return try {
-            mOsmAndAidlInterface?.addMapLayer(params)
-            Log.d("OsmAndAidlHelper", "Successfully registered Map Layer: $layerName")
-            true
+            val result = mOsmAndAidlInterface?.importGpx(params) ?: false
+            Log.d("OsmAndAidlHelper", "Successfully imported GPX string via AIDL: $fileName")
+            result
         } catch (e: RemoteException) {
-            Log.e("OsmAndAidlHelper", "Failed to register Map Layer", e)
-            e.printStackTrace()
-            false
-        }
-    }
-
-    fun addMapPoint(layerId: String, pointId: String, lat: Double, lon: Double, name: String, color: Int = Color.RED): Boolean {
-        val params = AddMapPointParams(layerId, pointId, lat, lon, name, "ic_action_marker_dark", true, color, application.packageName)
-        return try {
-            mOsmAndAidlInterface?.addMapPoint(params)
-            Log.d("OsmAndAidlHelper", "Successfully registered Map Point: $name")
-            true
-        } catch (e: RemoteException) {
-            Log.e("OsmAndAidlHelper", "Failed to register Map Point", e)
+            Log.e("OsmAndAidlHelper", "Failed to import GPX string via AIDL", e)
             e.printStackTrace()
             false
         }

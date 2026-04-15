@@ -25,6 +25,9 @@ import android.util.Log
 import android.os.Handler
 import android.os.Looper
 import android.graphics.Color
+import androidx.core.content.FileProvider
+import java.io.File
+import java.io.FileOutputStream
 import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -129,11 +132,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 selectedLocations.add(Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth))
                 saveState()
                 updateResetButton()
-                Toast.makeText(this, "Reading saved. Drawing directly on Map...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Reading saved. Drawing silently on Map...", Toast.LENGTH_SHORT).show()
 
                 // Draw map points and return to OsmAnd
                 Handler(Looper.getMainLooper()).postDelayed({
                     drawTriangulationPointsOnMap()
+
                     val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
                         ?: packageManager.getLaunchIntentForPackage("net.osmand")
                     if (launchIntent != null) {
@@ -152,6 +156,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             saveState()
             updateResetButton()
             Toast.makeText(this, "Reset points", Toast.LENGTH_SHORT).show()
+            drawTriangulationPointsOnMap()
         }
 
         btnRegisterOsmAnd.setOnClickListener {
@@ -188,7 +193,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     override fun onOsmAndServiceConnected() {
         Log.d("Triangulation", "OsmAnd Service Connected. Registering Context Menu Button.")
         osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")
-        osmandHelper.addMapLayer("triangulation_layer", "Triangulation Points")
     }
 
     override fun onOsmAndServiceDisconnected() {
@@ -434,6 +438,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     }
 
     private fun drawTriangulationPointsOnMap() {
+        val gpxStr = java.lang.StringBuilder()
+        gpxStr.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+        gpxStr.append("<gpx version=\"1.1\" creator=\"Geolocation Triangulation\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n")
+
         var intersection: Pair<Double, Double>? = null
         if (selectedLocations.size >= 2) {
              val r1 = selectedLocations[selectedLocations.size - 2]
@@ -441,27 +449,67 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
              intersection = calculateIntersection(r1, r2)
         }
 
-        var pointCount = 0
+        gpxStr.append("  <trk>\n")
+        gpxStr.append("    <name>Triangulation Lines</name>\n")
         for (reading in selectedLocations) {
-            val distKm = if (intersection != null) {
+            gpxStr.append("    <trkseg>\n")
+            gpxStr.append("      <trkpt lat=\"${reading.lat}\" lon=\"${reading.lon}\"></trkpt>\n")
+
+            val dist = if (intersection != null) {
                 calculateDistance(reading.lat, reading.lon, intersection.first, intersection.second) * 1.5
             } else {
                 50.0 // Default 50km
             }
 
-            // To simulate drawing a line using map points natively (as requested by User for Map Layer integration option B)
-            // we calculate intermediate coordinate positions every 1km
-            val steps = Math.max(1, distKm.toInt())
-            for (i in 0..steps) {
-                val currentDist = (distKm / steps) * i
-                val point = calculateDestination(reading.lat, reading.lon, reading.backAzimuth.toDouble(), currentDist)
-                osmandHelper.addMapPoint("triangulation_layer", "t_line_${pointCount}_$i", point.first, point.second, if (i==0) "Origin" else "", Color.RED)
-            }
-            pointCount++
+            val point2 = calculateDestination(reading.lat, reading.lon, reading.backAzimuth.toDouble(), dist)
+
+            gpxStr.append("      <trkpt lat=\"${point2.first}\" lon=\"${point2.second}\"></trkpt>\n")
+            gpxStr.append("    </trkseg>\n")
+        }
+        gpxStr.append("  </trk>\n")
+
+        for (reading in selectedLocations) {
+            gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
+            gpxStr.append("    <name>Back Azimuth ${String.format("%.1f", reading.backAzimuth)}°</name>\n")
+            gpxStr.append("  </wpt>\n")
         }
 
         if (intersection != null) {
-            osmandHelper.addMapPoint("triangulation_layer", "t_intersection", intersection.first, intersection.second, "Intersection", Color.BLUE)
+            gpxStr.append("  <wpt lat=\"${intersection.first}\" lon=\"${intersection.second}\">\n")
+            gpxStr.append("    <name>Intersection</name>\n")
+            gpxStr.append("  </wpt>\n")
+        }
+
+        gpxStr.append("</gpx>\n")
+
+        // Pass to AIDL to silently import and display in OsmAnd
+        val aidlSuccess = osmandHelper.importGpxFromData(gpxStr.toString(), "triangulation.gpx", "red", true)
+
+        // Only fall back to explicit Intent sharing if AIDL fails
+        if (!aidlSuccess) {
+            try {
+                val file = java.io.File(cacheDir, "triangulation.gpx")
+                java.io.FileOutputStream(file).use {
+                    it.write(gpxStr.toString().toByteArray())
+                }
+
+                val contentUri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+
+                val intent = Intent(Intent.ACTION_VIEW)
+                intent.setDataAndType(contentUri, "application/gpx+xml")
+                intent.setPackage("net.osmand.plus")
+                intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
+
+                try {
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    intent.setPackage("net.osmand")
+                    startActivity(intent)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, "Failed to send to OsmAnd", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

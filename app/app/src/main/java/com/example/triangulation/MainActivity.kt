@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     private lateinit var btnReset: Button
     private lateinit var btnRegisterOsmAnd: Button
     private lateinit var cbMagnetic: CheckBox
+    private lateinit var etDistance: EditText
 
     private var baseAzimuth = 0f // The raw or user-inputted azimuth BEFORE declination
     private var selectedLocations = mutableListOf<Reading>()
@@ -70,6 +71,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         btnReset = findViewById(R.id.btnReset)
         btnRegisterOsmAnd = findViewById(R.id.btnRegisterOsmAnd)
         cbMagnetic = findViewById(R.id.cbMagnetic)
+        etDistance = findViewById(R.id.etDistance)
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
@@ -134,7 +136,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 updateResetButton()
                 Toast.makeText(this, "Reading saved. Drawing silently on Map...", Toast.LENGTH_SHORT).show()
 
-                // Draw map points and return to OsmAnd
                 Handler(Looper.getMainLooper()).postDelayed({
                     drawTriangulationPointsOnMap()
 
@@ -155,7 +156,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             selectedLocations.clear()
             saveState()
             updateResetButton()
-            Toast.makeText(this, "Reset points", Toast.LENGTH_SHORT).show()
+
+            // Remove existing line GPX from OsmAnd silently
+            osmandHelper.removeGpx("triangulation.gpx")
+
+            Toast.makeText(this, "Reset points and cleared OsmAnd lines", Toast.LENGTH_SHORT).show()
             drawTriangulationPointsOnMap()
         }
 
@@ -438,6 +443,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     }
 
     private fun drawTriangulationPointsOnMap() {
+        if (selectedLocations.isEmpty()) {
+            return
+        }
+
         val gpxStr = java.lang.StringBuilder()
         gpxStr.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         gpxStr.append("<gpx version=\"1.1\" creator=\"Geolocation Triangulation\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n")
@@ -451,6 +460,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
         gpxStr.append("  <trk>\n")
         gpxStr.append("    <name>Triangulation Lines</name>\n")
+
+        // Parse user-provided distance default
+        var defaultDist = 3.0
+        try {
+            val userDist = etDistance.text.toString().toDouble()
+            if (userDist > 0) defaultDist = userDist
+        } catch (e: Exception) {}
+
         for (reading in selectedLocations) {
             gpxStr.append("    <trkseg>\n")
             gpxStr.append("      <trkpt lat=\"${reading.lat}\" lon=\"${reading.lon}\"></trkpt>\n")
@@ -458,7 +475,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             val dist = if (intersection != null) {
                 calculateDistance(reading.lat, reading.lon, intersection.first, intersection.second) * 1.5
             } else {
-                50.0 // Default 50km
+                defaultDist
             }
 
             val point2 = calculateDestination(reading.lat, reading.lon, reading.backAzimuth.toDouble(), dist)

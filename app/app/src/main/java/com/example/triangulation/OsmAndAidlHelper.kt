@@ -5,20 +5,21 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.Color
+import android.net.Uri
 import android.os.IBinder
 import android.os.RemoteException
 import android.util.Log
-import net.osmand.aidl.IOsmAndAidlCallback
 import net.osmand.aidl.IOsmAndAidlInterface
-import net.osmand.aidl.contextmenu.AContextMenuButton
+import net.osmand.aidl.IOsmAndAidlCallback
 import net.osmand.aidl.contextmenu.ContextMenuButtonsParams
+import net.osmand.aidl.contextmenu.AContextMenuButton
 import net.osmand.aidl.gpx.ImportGpxParams
+import net.osmand.aidl.gpx.RemoveGpxParams
+import java.util.ArrayList
 
-class OsmAndAidlHelper(
-    private val application: Application,
-    private val listener: OsmAndAidlListener?
-) : ServiceConnection {
+class OsmAndAidlHelper(private val application: Application, private val listener: OsmAndAidlListener?) {
+
+    private var osmandService: IOsmAndAidlInterface? = null
 
     interface OsmAndAidlListener {
         fun onOsmAndServiceConnected()
@@ -26,74 +27,119 @@ class OsmAndAidlHelper(
         fun onContextMenuButtonClicked(buttonId: Int, pointId: String?, layerId: String?)
     }
 
-    private var mOsmAndAidlInterface: IOsmAndAidlInterface? = null
-
     private val callback = object : IOsmAndAidlCallback.Stub() {
-        override fun onUpdate() {}
+        override fun onContextMenuButtonClicked(buttonId: Int, pointId: String?, layerId: String?) {
+            Log.d(TAG, "onContextMenuButtonClicked: $buttonId, pointId: $pointId")
+            listener?.onContextMenuButtonClicked(buttonId, pointId, layerId)
+        }
         override fun onKeyboardAppeared() {}
         override fun onKeyboardDisappeared() {}
-        override fun onContextMenuButtonClicked(buttonId: Int, pointId: String?, layerId: String?) {
-            listener?.onContextMenuButtonClicked(buttonId, pointId, layerId)
+        override fun onUpdate() {}
+    }
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            Log.d(TAG, "OsmAnd AIDL Service Connected")
+            osmandService = IOsmAndAidlInterface.Stub.asInterface(service)
+
+            listener?.onOsmAndServiceConnected()
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            Log.d(TAG, "OsmAnd AIDL Service Disconnected")
+            osmandService = null
+            listener?.onOsmAndServiceDisconnected()
         }
     }
 
-    fun bindService() {
+    fun bindService(): Boolean {
         val intent = Intent("net.osmand.aidl.OsmandAidlService")
         intent.setPackage("net.osmand.plus")
-        val success = application.bindService(intent, this, Context.BIND_AUTO_CREATE)
-        if (!success) {
-            Log.e("OsmAndAidlHelper", "Failed to bind to OsmAnd plus service, trying free version")
+        var bound = application.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+
+        if (!bound) {
             intent.setPackage("net.osmand")
-            val successFree = application.bindService(intent, this, Context.BIND_AUTO_CREATE)
-            if(!successFree){
-                Log.e("OsmAndAidlHelper", "Failed to bind to OsmAnd service completely")
-            }
+            bound = application.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
         }
+
+        Log.d(TAG, "Binding to OsmAnd Service: $bound")
+        return bound
     }
 
     fun unbindService() {
+        application.unbindService(serviceConnection)
+        osmandService = null
+    }
+
+    fun addContextMenuButton(buttonId: Int, leftText: String, rightText: String, iconName: String = "ic_action_marker_dark"): Boolean {
+        if (osmandService == null) {
+            Log.e(TAG, "Service not bound, cannot add context menu button")
+            return false
+        }
+
         try {
-            application.unbindService(this)
+            val leftButton = AContextMenuButton(buttonId, leftText, leftText, iconName, iconName, false, true)
+            val rightButton = AContextMenuButton(buttonId + 1, rightText, rightText, iconName, iconName, false, true)
+
+            val params = ContextMenuButtonsParams(
+                leftButton,
+                rightButton,
+                "triangulation_context_menu_id",
+                application.packageName,
+                "", // layerId
+                1L, // callbackId
+                ArrayList<String>() // pointsIds
+            )
+
+            val resultId = osmandService?.addContextMenuButtons(params, callback)
+            Log.d(TAG, "addContextMenuButtons resultId: $resultId")
+            return resultId != null && resultId > 0L
+
+        } catch (e: RemoteException) {
+            Log.e(TAG, "Error adding context menu button", e)
+            return false
+        }
+    }
+
+    fun importGpxFromData(gpxData: String, fileName: String, color: String = "red", show: Boolean = true): Boolean {
+        if (osmandService == null) {
+            Log.e(TAG, "Service not bound, cannot import GPX")
+            return false
+        }
+
+        try {
+            val params = ImportGpxParams(
+                FileProviderHelper.getGpxUri(application, fileName, gpxData),
+                fileName,
+                color,
+                show
+            )
+            val result = osmandService?.importGpx(params)
+            Log.d(TAG, "importGpx result: $result")
+            return result ?: false
         } catch (e: Exception) {
-            // Ignore
+            Log.e(TAG, "Error importing GPX via AIDL", e)
+            return false
         }
     }
 
-    override fun onServiceConnected(name: ComponentName, service: IBinder) {
-        mOsmAndAidlInterface = IOsmAndAidlInterface.Stub.asInterface(service)
-        listener?.onOsmAndServiceConnected()
-    }
+    fun removeGpx(fileName: String): Boolean {
+        if (osmandService == null) {
+            return false
+        }
 
-    override fun onServiceDisconnected(name: ComponentName) {
-        mOsmAndAidlInterface = null
-        listener?.onOsmAndServiceDisconnected()
-    }
-
-    fun addContextMenuButton(id: Int, text: String, layerId: String): Boolean {
-        // Use the exact AIDL layout downloaded which uses int buttonId
-        val button = AContextMenuButton(id, text, text, "ic_action_settings", "ic_action_settings", false, true)
-        val params = ContextMenuButtonsParams(button, button, id.toString(), application.packageName, layerId, 1, emptyList())
-        return try {
-            mOsmAndAidlInterface?.addContextMenuButtons(params, callback)
-            Log.d("OsmAndAidlHelper", "Successfully registered Context Menu Button: $text")
-            true
-        } catch (e: RemoteException) {
-            Log.e("OsmAndAidlHelper", "Failed to register Context Menu Button", e)
-            e.printStackTrace()
-            false
+        try {
+            val params = RemoveGpxParams(fileName)
+            val result = osmandService?.removeGpx(params)
+            Log.d(TAG, "removeGpx result: $result")
+            return result ?: false
+        } catch (e: Exception) {
+            Log.e(TAG, "Error removing GPX via AIDL", e)
+            return false
         }
     }
 
-    fun importGpxFromData(data: String, fileName: String, color: String, show: Boolean): Boolean {
-        val params = ImportGpxParams(data, fileName, color, show)
-        return try {
-            val result = mOsmAndAidlInterface?.importGpx(params) ?: false
-            Log.d("OsmAndAidlHelper", "Successfully imported GPX string via AIDL: $fileName")
-            result
-        } catch (e: RemoteException) {
-            Log.e("OsmAndAidlHelper", "Failed to import GPX string via AIDL", e)
-            e.printStackTrace()
-            false
-        }
+    companion object {
+        private const val TAG = "OsmAndAidlHelper"
     }
 }

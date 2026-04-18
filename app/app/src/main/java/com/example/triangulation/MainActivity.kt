@@ -161,7 +161,15 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             osmandHelper.removeGpx("triangulation.gpx")
 
             Toast.makeText(this, "Reset points and cleared OsmAnd lines", Toast.LENGTH_SHORT).show()
-            drawTriangulationPointsOnMap()
+
+            // Navigate back to OsmAnd immediately
+            val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                ?: packageManager.getLaunchIntentForPackage("net.osmand")
+            if (launchIntent != null) {
+                launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                startActivity(launchIntent)
+            }
+            finish()
         }
 
         btnRegisterOsmAnd.setOnClickListener {

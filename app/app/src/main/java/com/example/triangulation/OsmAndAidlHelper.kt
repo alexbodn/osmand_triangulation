@@ -5,16 +5,24 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.net.Uri
 import android.os.IBinder
 import android.os.RemoteException
 import android.util.Log
-import net.osmand.aidl.IOsmAndAidlInterface
-import net.osmand.aidl.IOsmAndAidlCallback
-import net.osmand.aidl.contextmenu.ContextMenuButtonsParams
-import net.osmand.aidl.contextmenu.AContextMenuButton
-import net.osmand.aidl.gpx.ImportGpxParams
-import net.osmand.aidl.gpx.RemoveGpxParams
+import net.osmand.aidlapi.IOsmAndAidlInterface
+import net.osmand.aidlapi.IOsmAndAidlCallback
+import net.osmand.aidlapi.contextmenu.ContextMenuButtonsParams
+import net.osmand.aidlapi.contextmenu.AContextMenuButton
+import net.osmand.aidlapi.gpx.ImportGpxParams
+import net.osmand.aidlapi.gpx.RemoveGpxParams
+import net.osmand.aidlapi.search.SearchResult
+import net.osmand.aidlapi.gpx.AGpxBitmap
+import net.osmand.aidlapi.navigation.ADirectionInfo
+import net.osmand.aidlapi.navigation.OnVoiceNavigationParams
+import net.osmand.aidlapi.logcat.OnLogcatMessageParams
+import android.view.KeyEvent
+import net.osmand.aidlapi.customization.OsmandSettingsParams
+import net.osmand.aidlapi.maplayer.point.AMapPoint
+import net.osmand.aidlapi.plugins.PluginParams
 import java.util.ArrayList
 
 class OsmAndAidlHelper(private val application: Application, private val listener: OsmAndAidlListener?) {
@@ -32,9 +40,14 @@ class OsmAndAidlHelper(private val application: Application, private val listene
             Log.d(TAG, "onContextMenuButtonClicked: $buttonId, pointId: $pointId")
             listener?.onContextMenuButtonClicked(buttonId, pointId, layerId)
         }
-        override fun onKeyboardAppeared() {}
-        override fun onKeyboardDisappeared() {}
         override fun onUpdate() {}
+        override fun onSearchComplete(result: MutableList<SearchResult>?) {}
+        override fun onAppInitialized() {}
+        override fun onGpxBitmapCreated(bitmap: AGpxBitmap?) {}
+        override fun updateNavigationInfo(info: ADirectionInfo?) {}
+        override fun onVoiceRouterNotify(params: OnVoiceNavigationParams?) {}
+        override fun onLogcatMessage(params: OnLogcatMessageParams?) {}
+        override fun onKeyEvent(event: KeyEvent?) {}
     }
 
     private val serviceConnection = object : ServiceConnection {
@@ -93,7 +106,7 @@ class OsmAndAidlHelper(private val application: Application, private val listene
 
             val resultId = osmandService?.addContextMenuButtons(params, callback)
             Log.d(TAG, "addContextMenuButtons resultId: $resultId")
-            return resultId != null && resultId > 0L
+            return resultId != null && resultId >= 0L
 
         } catch (e: RemoteException) {
             Log.e(TAG, "Error adding context menu button", e)
@@ -109,7 +122,7 @@ class OsmAndAidlHelper(private val application: Application, private val listene
 
         try {
             val params = ImportGpxParams(
-                FileProviderHelper.getGpxUri(application, fileName, gpxData),
+                gpxData,
                 fileName,
                 color,
                 show

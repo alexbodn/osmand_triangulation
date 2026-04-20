@@ -61,123 +61,141 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
 
-        ivArrow = findViewById(R.id.ivArrow)
-        etAzimuth = findViewById(R.id.etAzimuth)
-        tvBackAzimuth = findViewById(R.id.tvBackAzimuth)
-        tvDeclination = findViewById(R.id.tvDeclination)
-        btnSelect = findViewById(R.id.btnSelect)
-        btnReset = findViewById(R.id.btnReset)
-        btnRegisterOsmAnd = findViewById(R.id.btnRegisterOsmAnd)
-        cbMagnetic = findViewById(R.id.cbMagnetic)
-        etDistance = findViewById(R.id.etDistance)
+        try {
+            setContentView(R.layout.activity_main)
 
-        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+            ivArrow = findViewById(R.id.ivArrow)
+            etAzimuth = findViewById(R.id.etAzimuth)
+            tvBackAzimuth = findViewById(R.id.tvBackAzimuth)
+            tvDeclination = findViewById(R.id.tvDeclination)
+            btnSelect = findViewById(R.id.btnSelect)
+            btnReset = findViewById(R.id.btnReset)
+            btnRegisterOsmAnd = findViewById(R.id.btnRegisterOsmAnd)
+            cbMagnetic = findViewById(R.id.cbMagnetic)
+            etDistance = findViewById(R.id.etDistance)
 
-        osmandHelper = OsmAndAidlHelper(application, this)
-        osmandHelper.bindService()
+            sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+            rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
 
-        loadState()
-        handleIntent(intent)
-
-        etAzimuth.setOnFocusChangeListener { _, hasFocus ->
-            isUserEditing = hasFocus
-            if (!hasFocus) {
-                updateBackAzimuthDisplay(true)
+            osmandHelper = OsmAndAidlHelper(application, this)
+            val bound = osmandHelper.bindService()
+            if (!bound) {
+                Log.w("Triangulation", "Failed to initially bind to OsmAnd service")
             }
-        }
 
-        etAzimuth.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                if (isUserEditing) {
-                    val azimuthStr = s.toString()
-                    if (azimuthStr.isNotEmpty()) {
-                        try {
-                            val azimuth = azimuthStr.toFloat()
-                            if (azimuth in 0f..360f) {
-                                var declination = 0f
-                                if (cbMagnetic.isChecked) {
-                                    declination = calculateCurrentDeclination()
+            loadState()
+            handleIntent(intent)
+
+            etAzimuth.setOnFocusChangeListener { _, hasFocus ->
+                isUserEditing = hasFocus
+                if (!hasFocus) {
+                    updateBackAzimuthDisplay(true)
+                }
+            }
+
+            etAzimuth.addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                override fun afterTextChanged(s: Editable?) {
+                    if (isUserEditing) {
+                        val azimuthStr = s.toString()
+                        if (azimuthStr.isNotEmpty()) {
+                            try {
+                                val azimuth = azimuthStr.toFloat()
+                                if (azimuth in 0f..360f) {
+                                    var declination = 0f
+                                    if (cbMagnetic.isChecked) {
+                                        declination = calculateCurrentDeclination()
+                                    }
+                                    baseAzimuth = azimuth - declination
+                                    if (baseAzimuth < 0) baseAzimuth += 360f
+                                    if (baseAzimuth >= 360) baseAzimuth -= 360f
+
+                                    updateBackAzimuthDisplay(false)
                                 }
-                                baseAzimuth = azimuth - declination
-                                if (baseAzimuth < 0) baseAzimuth += 360f
-                                if (baseAzimuth >= 360) baseAzimuth -= 360f
-
-                                updateBackAzimuthDisplay(false)
+                            } catch (e: NumberFormatException) {
                             }
-                        } catch (e: NumberFormatException) {
                         }
                     }
                 }
+            })
+
+            cbMagnetic.setOnCheckedChangeListener { _, _ ->
+                updateBackAzimuthDisplay(true)
             }
-        })
 
-        cbMagnetic.setOnCheckedChangeListener { _, _ ->
-            updateBackAzimuthDisplay(true)
-        }
+            btnSelect.setOnClickListener {
+                if (currentLat != null && currentLon != null) {
+                    var azimuthToUse = baseAzimuth
 
-        btnSelect.setOnClickListener {
-            if (currentLat != null && currentLon != null) {
-                var azimuthToUse = baseAzimuth
+                    if (cbMagnetic.isChecked) {
+                        azimuthToUse += calculateCurrentDeclination()
+                        if (azimuthToUse >= 360f) azimuthToUse -= 360f
+                        if (azimuthToUse < 0f) azimuthToUse += 360f
+                    }
 
-                if (cbMagnetic.isChecked) {
-                    azimuthToUse += calculateCurrentDeclination()
-                    if (azimuthToUse >= 360f) azimuthToUse -= 360f
-                    if (azimuthToUse < 0f) azimuthToUse += 360f
+                    val backAzimuth = (azimuthToUse + 180) % 360
+                    selectedLocations.add(Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth))
+                    saveState()
+                    updateResetButton()
+                    Toast.makeText(this, "Reading saved. Drawing silently on Map...", Toast.LENGTH_SHORT).show()
+
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        drawTriangulationPointsOnMap()
+
+                        val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                            ?: packageManager.getLaunchIntentForPackage("net.osmand")
+                        if (launchIntent != null) {
+                            launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                            startActivity(launchIntent)
+                        }
+                        finish()
+                    }, 500)
+                } else {
+                    Toast.makeText(this, "No location selected from OsmAnd. Launch app from OsmAnd context menu or share.", Toast.LENGTH_SHORT).show()
                 }
+            }
 
-                val backAzimuth = (azimuthToUse + 180) % 360
-                selectedLocations.add(Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth))
+            btnReset.setOnClickListener {
+                selectedLocations.clear()
                 saveState()
                 updateResetButton()
-                Toast.makeText(this, "Reading saved. Drawing silently on Map...", Toast.LENGTH_SHORT).show()
 
-                Handler(Looper.getMainLooper()).postDelayed({
-                    drawTriangulationPointsOnMap()
+                // Remove existing line GPX from OsmAnd silently
+                osmandHelper.removeGpx("triangulation.gpx")
 
-                    val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
-                        ?: packageManager.getLaunchIntentForPackage("net.osmand")
-                    if (launchIntent != null) {
-                        launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                        startActivity(launchIntent)
+                Toast.makeText(this, "Reset points and cleared OsmAnd lines", Toast.LENGTH_SHORT).show()
+
+                // Navigate back to OsmAnd immediately
+                val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                    ?: packageManager.getLaunchIntentForPackage("net.osmand")
+                if (launchIntent != null) {
+                    launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    startActivity(launchIntent)
+                }
+                finish()
+            }
+
+            btnRegisterOsmAnd.setOnClickListener {
+                val boundService = osmandHelper.bindService()
+                if (boundService) {
+                    val added = osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")
+                    if (added) {
+                        Toast.makeText(this, "Successfully registered button to OsmAnd", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this, "Failed to register button to OsmAnd", Toast.LENGTH_SHORT).show()
                     }
-                    finish()
-                }, 500)
-            } else {
-                Toast.makeText(this, "No location selected from OsmAnd. Launch app from OsmAnd context menu or share.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Failed to bind to OsmAnd service", Toast.LENGTH_SHORT).show()
+                }
             }
-        }
 
-        btnReset.setOnClickListener {
-            selectedLocations.clear()
-            saveState()
             updateResetButton()
-
-            // Remove existing line GPX from OsmAnd silently
-            osmandHelper.removeGpx("triangulation.gpx")
-
-            Toast.makeText(this, "Reset points and cleared OsmAnd lines", Toast.LENGTH_SHORT).show()
-
-            // Navigate back to OsmAnd immediately
-            val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
-                ?: packageManager.getLaunchIntentForPackage("net.osmand")
-            if (launchIntent != null) {
-                launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                startActivity(launchIntent)
-            }
-            finish()
+        } catch (e: Exception) {
+            Log.e("Triangulation", "Error in onCreate", e)
+            Toast.makeText(this, "Startup error: ${e.message}", Toast.LENGTH_LONG).show()
         }
-
-        btnRegisterOsmAnd.setOnClickListener {
-            osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")
-            Toast.makeText(this, "Attempted to register button to OsmAnd", Toast.LENGTH_SHORT).show()
-        }
-
-        updateResetButton()
     }
 
     private fun calculateCurrentDeclination(): Float {
@@ -205,11 +223,17 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     override fun onOsmAndServiceConnected() {
         Log.d("Triangulation", "OsmAnd Service Connected. Registering Context Menu Button.")
+        runOnUiThread {
+            Toast.makeText(this, "Connected to OsmAnd API", Toast.LENGTH_SHORT).show()
+        }
         osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")
     }
 
     override fun onOsmAndServiceDisconnected() {
         Log.d("Triangulation", "OsmAnd Service Disconnected.")
+        runOnUiThread {
+            Toast.makeText(this, "Disconnected from OsmAnd API", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onContextMenuButtonClicked(buttonId: Int, pointId: String?, layerId: String?) {
@@ -510,31 +534,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         // Pass to AIDL to silently import and display in OsmAnd
         val aidlSuccess = osmandHelper.importGpxFromData(gpxStr.toString(), "triangulation.gpx", "red", true)
 
-        // Only fall back to explicit Intent sharing if AIDL fails
         if (!aidlSuccess) {
-            try {
-                val file = java.io.File(cacheDir, "triangulation.gpx")
-                java.io.FileOutputStream(file).use {
-                    it.write(gpxStr.toString().toByteArray())
-                }
-
-                val contentUri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
-
-                val intent = Intent(Intent.ACTION_VIEW)
-                intent.setDataAndType(contentUri, "application/gpx+xml")
-                intent.setPackage("net.osmand.plus")
-                intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
-
-                try {
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    intent.setPackage("net.osmand")
-                    startActivity(intent)
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(this, "Failed to send to OsmAnd", Toast.LENGTH_SHORT).show()
-            }
+            Toast.makeText(this, "Failed to send GPX to OsmAnd via AIDL", Toast.LENGTH_SHORT).show()
         }
     }
 

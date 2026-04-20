@@ -8,6 +8,7 @@ import android.content.ServiceConnection
 import android.os.IBinder
 import android.os.RemoteException
 import android.util.Log
+import android.view.KeyEvent
 import net.osmand.aidlapi.IOsmAndAidlInterface
 import net.osmand.aidlapi.IOsmAndAidlCallback
 import net.osmand.aidlapi.contextmenu.ContextMenuButtonsParams
@@ -19,7 +20,6 @@ import net.osmand.aidlapi.gpx.AGpxBitmap
 import net.osmand.aidlapi.navigation.ADirectionInfo
 import net.osmand.aidlapi.navigation.OnVoiceNavigationParams
 import net.osmand.aidlapi.logcat.OnLogcatMessageParams
-import android.view.KeyEvent
 import net.osmand.aidlapi.customization.OsmandSettingsParams
 import net.osmand.aidlapi.maplayer.point.AMapPoint
 import net.osmand.aidlapi.plugins.PluginParams
@@ -28,6 +28,7 @@ import java.util.ArrayList
 class OsmAndAidlHelper(private val application: Application, private val listener: OsmAndAidlListener?) {
 
     private var osmandService: IOsmAndAidlInterface? = null
+    private var isBound = false
 
     interface OsmAndAidlListener {
         fun onOsmAndServiceConnected()
@@ -66,21 +67,36 @@ class OsmAndAidlHelper(private val application: Application, private val listene
     }
 
     fun bindService(): Boolean {
-        val intent = Intent("net.osmand.aidl.OsmandAidlService")
-        intent.setPackage("net.osmand.plus")
-        var bound = application.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        if (isBound) return true
 
-        if (!bound) {
-            intent.setPackage("net.osmand")
-            bound = application.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        try {
+            val intent = Intent("net.osmand.aidl.OsmandAidlService")
+            intent.setPackage("net.osmand.plus")
+            var bound = application.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+
+            if (!bound) {
+                intent.setPackage("net.osmand")
+                bound = application.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+            }
+
+            isBound = bound
+            Log.d(TAG, "Binding to OsmAnd Service: $bound")
+            return bound
+        } catch (e: Exception) {
+            Log.e(TAG, "Error binding to OsmAnd Service", e)
+            return false
         }
-
-        Log.d(TAG, "Binding to OsmAnd Service: $bound")
-        return bound
     }
 
     fun unbindService() {
-        application.unbindService(serviceConnection)
+        if (isBound) {
+            try {
+                application.unbindService(serviceConnection)
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Service was not registered or already unbound", e)
+            }
+            isBound = false
+        }
         osmandService = null
     }
 
@@ -110,6 +126,9 @@ class OsmAndAidlHelper(private val application: Application, private val listene
 
         } catch (e: RemoteException) {
             Log.e(TAG, "Error adding context menu button", e)
+            return false
+        } catch (e: Exception) {
+            Log.e(TAG, "Unknown error adding context menu button", e)
             return false
         }
     }

@@ -115,7 +115,7 @@ class OsmAndAidlHelper(private val application: Application, private val listene
                 rightButton,
                 "triangulation_context_menu_id",
                 application.packageName,
-                "", // layerId
+                "triangulation_layer", // layerId - needs a name even if we don't have map points
                 1L, // callbackId
                 ArrayList<String>() // pointsIds
             )
@@ -141,7 +141,7 @@ class OsmAndAidlHelper(private val application: Application, private val listene
 
         try {
             val params = ImportGpxParams(
-                gpxData,
+                FileProviderHelper.getGpxUri(application, fileName, gpxData),
                 fileName,
                 color,
                 show

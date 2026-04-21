@@ -23,6 +23,8 @@ import net.osmand.aidlapi.logcat.OnLogcatMessageParams
 import net.osmand.aidlapi.customization.OsmandSettingsParams
 import net.osmand.aidlapi.maplayer.point.AMapPoint
 import net.osmand.aidlapi.plugins.PluginParams
+import net.osmand.aidlapi.maplayer.AMapLayer
+import net.osmand.aidlapi.maplayer.AddMapLayerParams
 import java.util.ArrayList
 
 class OsmAndAidlHelper(private val application: Application, private val listener: OsmAndAidlListener?) {
@@ -107,6 +109,13 @@ class OsmAndAidlHelper(private val application: Application, private val listene
         }
 
         try {
+            val layerId = "triangulation_layer"
+
+            // First explicitly register the map layer we are attaching to, like the official demo does
+            val layer = AMapLayer(layerId, "Triangulation Readings", 5.5f, null)
+            val layerParams = AddMapLayerParams(layer)
+            osmandService?.addMapLayer(layerParams)
+
             val leftButton = AContextMenuButton(buttonId, leftText, leftText, iconName, iconName, false, true)
             val rightButton = AContextMenuButton(buttonId + 1, rightText, rightText, iconName, iconName, false, true)
 
@@ -115,7 +124,7 @@ class OsmAndAidlHelper(private val application: Application, private val listene
                 rightButton,
                 "triangulation_context_menu_id",
                 application.packageName,
-                "triangulation_layer", // layerId - needs a name even if we don't have map points
+                layerId,
                 1L, // callbackId
                 ArrayList<String>() // pointsIds
             )

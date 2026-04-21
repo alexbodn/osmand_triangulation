@@ -105,6 +105,9 @@ class OsmAndAidlHelper(private val application: Application, private val listene
     fun addContextMenuButton(buttonId: Int, leftText: String, rightText: String, iconName: String = "ic_action_marker_dark"): Boolean {
         if (osmandService == null) {
             Log.e(TAG, "Service not bound, cannot add context menu button")
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                android.widget.Toast.makeText(application, "OsmAnd Service not bound, cannot add button", android.widget.Toast.LENGTH_LONG).show()
+            }
             return false
         }
 
@@ -114,7 +117,8 @@ class OsmAndAidlHelper(private val application: Application, private val listene
             // First explicitly register the map layer we are attaching to, like the official demo does
             val layer = AMapLayer(layerId, "Triangulation Readings", 5.5f, null)
             val layerParams = AddMapLayerParams(layer)
-            osmandService?.addMapLayer(layerParams)
+            val layerAdded = osmandService?.addMapLayer(layerParams)
+            Log.d(TAG, "addMapLayer result: $layerAdded")
 
             val leftButton = AContextMenuButton(buttonId, leftText, leftText, iconName, iconName, false, true)
             val rightButton = AContextMenuButton(buttonId + 1, rightText, rightText, iconName, iconName, false, true)
@@ -135,9 +139,15 @@ class OsmAndAidlHelper(private val application: Application, private val listene
 
         } catch (e: RemoteException) {
             Log.e(TAG, "Error adding context menu button", e)
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                android.widget.Toast.makeText(application, "RemoteException adding button: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            }
             return false
         } catch (e: Exception) {
             Log.e(TAG, "Unknown error adding context menu button", e)
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                android.widget.Toast.makeText(application, "Error adding button: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            }
             return false
         }
     }
@@ -145,6 +155,9 @@ class OsmAndAidlHelper(private val application: Application, private val listene
     fun importGpxFromData(gpxData: String, fileName: String, color: String = "red", show: Boolean = true): Boolean {
         if (osmandService == null) {
             Log.e(TAG, "Service not bound, cannot import GPX")
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                android.widget.Toast.makeText(application, "OsmAnd Service not bound, cannot import GPX", android.widget.Toast.LENGTH_LONG).show()
+            }
             return false
         }
 
@@ -160,6 +173,9 @@ class OsmAndAidlHelper(private val application: Application, private val listene
             return result ?: false
         } catch (e: Exception) {
             Log.e(TAG, "Error importing GPX via AIDL", e)
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                android.widget.Toast.makeText(application, "Error importing GPX via AIDL: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            }
             return false
         }
     }
@@ -176,6 +192,9 @@ class OsmAndAidlHelper(private val application: Application, private val listene
             return result ?: false
         } catch (e: Exception) {
             Log.e(TAG, "Error removing GPX via AIDL", e)
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                android.widget.Toast.makeText(application, "Error removing GPX: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            }
             return false
         }
     }

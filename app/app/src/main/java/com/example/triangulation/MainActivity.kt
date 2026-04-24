@@ -522,7 +522,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
         val gpxStr = java.lang.StringBuilder()
         gpxStr.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        gpxStr.append("<gpx version=\"1.1\" creator=\"Geolocation Triangulation\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n")
+        gpxStr.append("<gpx version=\"1.1\" creator=\"Geolocation Triangulation\" xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:osmand=\"https://osmand.net/docs/technical/osmand-file-formats/osmand-gpx\">\n")
+        gpxStr.append("  <extensions>\n")
+        gpxStr.append("    <osmand:show_start_finish>false</osmand:show_start_finish>\n")
+        gpxStr.append("  </extensions>\n")
 
         var intersection: Pair<Double, Double>? = null
         if (selectedLocations.size >= 2) {

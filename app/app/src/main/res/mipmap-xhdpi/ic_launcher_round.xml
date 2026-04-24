@@ -1,0 +1,47 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#26A69A"
+        android:pathData="M54,54m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0" />
+
+    <!-- Line from left pin to center -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:pathData="M 30,20 L 54,54" />
+
+    <!-- Line from right pin to center -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:pathData="M 78,20 L 54,54" />
+
+    <!-- Line continuing out of the icon -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:pathData="M 54,54 L 54,88" />
+
+    <!-- Left Pin -->
+    <path
+        android:fillColor="#FF0000"
+        android:pathData="M30,20m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+
+    <!-- Right Pin -->
+    <path
+        android:fillColor="#FF0000"
+        android:pathData="M78,20m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+
+    <!-- Question mark in the center -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 51.5 41 C 51.5 39.6 52.6 38.5 54 38.5 C 55.4 38.5 56.5 39.6 56.5 41 C 56.5 42 55.9 42.8 55 43.2 L 55 47 L 53 47 L 53 43.2 C 52.1 42.8 51.5 42 51.5 41 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 54 51 C 55.1 51 56 51.9 56 53 C 56 54.1 55.1 55 54 55 C 52.9 55 52 54.1 52 53 C 52 51.9 52.9 51 54 51 Z" />
+
+</vector>

@@ -1,0 +1,105 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x app/gradlew
+
+    - name: Build Triangulation APK
+      run: cd app && ./gradlew assembleDebug
+
+    - name: Copy Triangulation APK
+      run: cp app/app/build/outputs/apk/debug/Triangulation-debug.apk triangulation.apk
+
+    - name: Upload Triangulation APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: triangulation-apk
+        path: triangulation.apk
+
+    - name: Build OsmAnd API Sample APK
+      run: |
+        git clone https://github.com/osmandapp/osmand-api-demo.git /tmp/osmand-api-demo
+        cd /tmp/osmand-api-demo/OsmAnd-api-sample
+        cat << 'GRADLE' > app/build.gradle
+        apply plugin: 'com.android.application'
+        apply plugin: 'kotlin-android'
+
+        android {
+            compileSdk 34
+            buildToolsVersion = "34.0.0"
+
+            namespace = "net.osmand.osmandapidemo"
+
+            defaultConfig {
+                applicationId "net.osmand.osmandapidemo"
+                minSdkVersion 24
+                targetSdkVersion 34
+                versionCode 100
+                versionName "1.0-dev"
+            }
+
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
+
+            kotlinOptions {
+                jvmTarget = "17"
+            }
+
+            buildFeatures {
+                aidl true
+                viewBinding true
+            }
+
+            buildTypes {
+                release {
+                    minifyEnabled false
+                    proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+                }
+                debug {}
+            }
+            sourceSets {
+                main {
+                    aidl.srcDirs = ["src/main/aidl"]
+                    java.srcDirs = ["src/main/java"]
+                }
+            }
+        }
+
+        dependencies {
+            implementation fileTree(dir: 'libs', include: ['*.jar'])
+            implementation "net.osmand:android-aidl-lib:5.3@aar"
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.android.material:material:1.9.0'
+        }
+        GRADLE
+
+        chmod +x gradlew
+        ./gradlew :app:assembleDebug
+        cp app/build/outputs/apk/debug/app-debug.apk $GITHUB_WORKSPACE/osmand-api-demo.apk
+
+    - name: Upload OsmAnd API Demo APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: osmand-api-demo-apk
+        path: osmand-api-demo.apk

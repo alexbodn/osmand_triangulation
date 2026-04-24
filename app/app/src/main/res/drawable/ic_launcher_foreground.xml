@@ -3,29 +3,47 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- 120-degree arc connecting the two sides -->
     <path
-        android:pathData="M 10 10 L 98 10 L 54 90 Z"
+        android:pathData="M 14 54 A 40 40 0 0 1 94 54"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="2"
         android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
+        android:fillColor="#00000000" />
+
+    <!-- Left binocular simple shape -->
     <path
-        android:pathData="M 10 10 L 54 36"
+        android:pathData="M 14 54 L 10 46 L 18 46 Z M 12 56 A 4 4 0 1 1 16 56"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Right binocular simple shape -->
+    <path
+        android:pathData="M 94 54 L 90 46 L 98 46 Z M 92 56 A 4 4 0 1 1 96 56"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Two arrows crossing in the center (54, 54) and continuing -->
+    <!-- Left arrow pointing towards center and continuing past it -->
+    <path
+        android:pathData="M 14 54 L 94 86"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="1.5" />
+
+    <!-- Right arrow pointing towards center and continuing past it -->
     <path
-        android:pathData="M 98 10 L 54 36"
+        android:pathData="M 94 54 L 14 86"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="1.5" />
-    <!-- Center of gravity (approx 54, 36.6) - Drawing a simple compass representation -->
+
+    <!-- Compass at the intersection (approx 54, 70 depending on the exact math, let's say intersection is 54,70) -->
+    <!-- Center compass design (red/blue arrow needle) -->
     <path
-        android:pathData="M 54 26 L 60 36 L 54 46 L 48 36 Z"
+        android:pathData="M 54 60 L 58 70 L 54 80 L 50 70 Z"
         android:fillColor="#FF0000" />
     <path
-        android:pathData="M 54 46 L 60 36 L 54 26 L 48 36 Z"
+        android:pathData="M 54 80 L 58 70 L 54 60 L 50 70 Z"
         android:strokeColor="#000000"
         android:strokeWidth="1" />
     <path
-        android:pathData="M 54 36 L 60 36 L 54 46 Z"
+        android:pathData="M 54 70 L 58 70 L 54 80 Z"
         android:fillColor="#0000FF" />
 </vector>

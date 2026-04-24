@@ -3,14 +3,6 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 120-degree arc connecting the two sides -->
-    <path
-        android:pathData="M 14 54 A 40 40 0 0 1 94 54"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2"
-        android:strokeLineCap="round"
-        android:fillColor="#00000000" />
-
     <!-- Left binocular simple shape -->
     <path
         android:pathData="M 14 54 L 10 46 L 18 46 Z M 12 56 A 4 4 0 1 1 16 56"

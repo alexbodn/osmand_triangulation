@@ -567,7 +567,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             // Origin point with binoculars emoji
             val formattedAzimuth = String.format("%.1f", reading.backAzimuth)
             gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
-            gpxStr.append("    <sym>null</sym>\n")
+            gpxStr.append("    <sym>none</sym>\n")
+            gpxStr.append("    <type>none</type>\n")
+            gpxStr.append("    <extensions>\n      <icon>none</icon>\n      <background>null</background>\n    </extensions>\n")
             gpxStr.append("    <name>\uD83D\uDD2D ${formattedAzimuth}°</name>\n")
             gpxStr.append("  </wpt>\n")
 
@@ -585,7 +587,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             val point2 = calculateDestination(reading.lat, reading.lon, reading.backAzimuth.toDouble(), dist)
 
             gpxStr.append("  <wpt lat=\"${point2.first}\" lon=\"${point2.second}\">\n")
-            gpxStr.append("    <sym>null</sym>\n")
+            gpxStr.append("    <sym>none</sym>\n")
+            gpxStr.append("    <type>none</type>\n")
+            gpxStr.append("    <extensions>\n      <icon>none</icon>\n      <background>null</background>\n    </extensions>\n")
             gpxStr.append("    <name>\u2601\uFE0F</name>\n")
             gpxStr.append("  </wpt>\n")
         }
@@ -593,12 +597,16 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         val finalCog = calculateCenterOfGravity()
         if (finalCog != null) {
             gpxStr.append("  <wpt lat=\"${finalCog.first}\" lon=\"${finalCog.second}\">\n")
-            gpxStr.append("    <sym>null</sym>\n")
+            gpxStr.append("    <sym>none</sym>\n")
+            gpxStr.append("    <type>none</type>\n")
+            gpxStr.append("    <extensions>\n      <icon>none</icon>\n      <background>null</background>\n    </extensions>\n")
             gpxStr.append("    <name>\uD83E\uDDED Detected Location</name>\n")
             gpxStr.append("  </wpt>\n")
         } else if (intersection != null) {
             gpxStr.append("  <wpt lat=\"${intersection.first}\" lon=\"${intersection.second}\">\n")
-            gpxStr.append("    <sym>null</sym>\n")
+            gpxStr.append("    <sym>none</sym>\n")
+            gpxStr.append("    <type>none</type>\n")
+            gpxStr.append("    <extensions>\n      <icon>none</icon>\n      <background>null</background>\n    </extensions>\n")
             gpxStr.append("    <name>\uD83E\uDDED Detected Location</name>\n")
             gpxStr.append("  </wpt>\n")
         }

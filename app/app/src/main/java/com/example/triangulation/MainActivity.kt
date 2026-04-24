@@ -121,7 +121,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 }
             })
 
-            cbMagnetic.setOnCheckedChangeListener { _, _ ->
+            cbMagnetic.setOnCheckedChangeListener { _, isChecked ->
+                val sharedPrefs = getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+                sharedPrefs.edit().putBoolean("isMagneticChecked", isChecked).apply()
                 updateBackAzimuthDisplay(true)
             }
 
@@ -144,8 +146,20 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                     Handler(Looper.getMainLooper()).postDelayed({
                         drawTriangulationPointsOnMap()
 
-                        val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                        var launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
                             ?: packageManager.getLaunchIntentForPackage("net.osmand")
+
+                        if (selectedLocations.size >= 2) {
+                            val cog = calculateCenterOfGravity()
+                            if (cog != null) {
+                                launchIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("geo:${cog.first},${cog.second}?z=15"))
+                                launchIntent.setPackage("net.osmand.plus")
+                                if (launchIntent.resolveActivity(packageManager) == null) {
+                                    launchIntent.setPackage("net.osmand")
+                                }
+                            }
+                        }
+
                         if (launchIntent != null) {
                             launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                             startActivity(launchIntent)
@@ -202,7 +216,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         var declinationTargetLat = currentLat ?: 0.0
         var declinationTargetLon = currentLon ?: 0.0
 
-        if (selectedLocations.isNotEmpty()) {
+        val cog = calculateCenterOfGravity()
+        if (cog != null) {
+            declinationTargetLat = cog.first
+            declinationTargetLon = cog.second
+        } else if (selectedLocations.isNotEmpty()) {
             val fakeCurrentReading = Reading(declinationTargetLat, declinationTargetLon, baseAzimuth, (baseAzimuth + 180f) % 360f)
             val r1 = selectedLocations.last()
             val intersection = calculateIntersection(r1, fakeCurrentReading)
@@ -276,6 +294,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     private fun loadState() {
         val sharedPrefs = getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+        val isMagneticChecked = sharedPrefs.getBoolean("isMagneticChecked", false)
+        cbMagnetic.isChecked = isMagneticChecked
+
         val jsonString = sharedPrefs.getString("locations", null)
         selectedLocations.clear()
         if (jsonString != null) {
@@ -412,6 +433,26 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         btnReset.text = "Reset (${selectedLocations.size} locations)"
     }
 
+    private fun calculateCenterOfGravity(): Pair<Double, Double>? {
+        if (selectedLocations.size < 2) return null
+        var totalLat = 0.0
+        var totalLon = 0.0
+        var count = 0
+
+        for (i in 0 until selectedLocations.size - 1) {
+            val r1 = selectedLocations[i]
+            val r2 = selectedLocations[i + 1]
+            val intersection = calculateIntersection(r1, r2)
+            if (intersection != null) {
+                totalLat += intersection.first
+                totalLon += intersection.second
+                count++
+            }
+        }
+
+        return if (count > 0) Pair(totalLat / count, totalLon / count) else null
+    }
+
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val R = 6371.0
         val dLat = Math.toRadians(lat2 - lat1)
@@ -504,8 +545,13 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             gpxStr.append("    <trkseg>\n")
             gpxStr.append("      <trkpt lat=\"${reading.lat}\" lon=\"${reading.lon}\"></trkpt>\n")
 
-            val dist = if (intersection != null) {
-                calculateDistance(reading.lat, reading.lon, intersection.first, intersection.second) * 1.5
+            val dist = if (selectedLocations.size >= 2) {
+                val cog = calculateCenterOfGravity()
+                if (cog != null) {
+                    calculateDistance(reading.lat, reading.lon, cog.first, cog.second) * 1.5
+                } else {
+                    defaultDist
+                }
             } else {
                 defaultDist
             }
@@ -518,17 +564,40 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         gpxStr.append("  </trk>\n")
 
         for (reading in selectedLocations) {
+            // Origin point with binoculars emoji
+            val formattedAzimuth = String.format("%.1f", reading.backAzimuth)
             gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
-            gpxStr.append("    <name>Back Azimuth ${String.format("%.1f", reading.backAzimuth)}°</name>\n")
+            gpxStr.append("    <name>\uD83D\uDD2D ${formattedAzimuth}°</name>\n")
+            gpxStr.append("  </wpt>\n")
+
+            // Destination point (end of line) with cloud emoji
+            val dist = if (selectedLocations.size >= 2) {
+                val cog = calculateCenterOfGravity()
+                if (cog != null) {
+                    calculateDistance(reading.lat, reading.lon, cog.first, cog.second) * 1.5
+                } else {
+                    defaultDist
+                }
+            } else {
+                defaultDist
+            }
+            val point2 = calculateDestination(reading.lat, reading.lon, reading.backAzimuth.toDouble(), dist)
+
+            gpxStr.append("  <wpt lat=\"${point2.first}\" lon=\"${point2.second}\">\n")
+            gpxStr.append("    <name>\u2601\uFE0F</name>\n")
             gpxStr.append("  </wpt>\n")
         }
 
-        if (intersection != null) {
+        val finalCog = calculateCenterOfGravity()
+        if (finalCog != null) {
+            gpxStr.append("  <wpt lat=\"${finalCog.first}\" lon=\"${finalCog.second}\">\n")
+            gpxStr.append("    <name>\uD83E\uDDED Detected Location</name>\n")
+            gpxStr.append("  </wpt>\n")
+        } else if (intersection != null) {
             gpxStr.append("  <wpt lat=\"${intersection.first}\" lon=\"${intersection.second}\">\n")
-            gpxStr.append("    <name>Intersection</name>\n")
+            gpxStr.append("    <name>\uD83E\uDDED Detected Location</name>\n")
             gpxStr.append("  </wpt>\n")
         }
-
         gpxStr.append("</gpx>\n")
 
         // Pass to AIDL to silently import and display in OsmAnd

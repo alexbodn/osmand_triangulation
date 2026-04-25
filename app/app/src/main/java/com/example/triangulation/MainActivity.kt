@@ -502,9 +502,15 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         val gpxStr = java.lang.StringBuilder()
         gpxStr.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         gpxStr.append("<gpx version=\"1.1\" creator=\"Geolocation Triangulation\" xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:osmand=\"https://osmand.net/docs/technical/osmand-file-formats/osmand-gpx\">\n")
+
         gpxStr.append("  <extensions>\n")
         gpxStr.append("    <osmand:show_start_finish>false</osmand:show_start_finish>\n")
         gpxStr.append("    <osmand:show_arrows>true</osmand:show_arrows>\n")
+        gpxStr.append("    <osmand:points_groups>\n")
+        gpxStr.append("      <group name=\"origin\" color=\"#0000FF\" icon=\"tourism_viewpoint\" background=\"circle\" />\n")
+        gpxStr.append("      <group name=\"destination\" color=\"#888888\" icon=\"natural_cloud\" background=\"circle\" />\n")
+        gpxStr.append("      <group name=\"center\" color=\"#FF0000\" icon=\"sport_orienteering\" background=\"circle\" />\n")
+        gpxStr.append("    </osmand:points_groups>\n")
         gpxStr.append("  </extensions>\n")
 
         var intersection: Pair<Double, Double>? = null
@@ -549,35 +555,41 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         for (reading in selectedLocations) {
             val formattedAzimuth = String.format("%.1f", reading.backAzimuth)
 
-            // Origin point with binoculars emoji
+            // Origin point
             gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
-            gpxStr.append("    <name>🔭 ${formattedAzimuth}°</name>\n")
-            gpxStr.append("    <sym>empty</sym>\n")
-            gpxStr.append("    <extensions>\n")
-            gpxStr.append("      <osmand:background>circle</osmand:background>\n")
-            gpxStr.append("      <osmand:color>#00000000</osmand:color>\n")
-            gpxStr.append("    </extensions>\n")
+            gpxStr.append("    <name>${formattedAzimuth}°</name>\n")
+            gpxStr.append("    <type>origin</type>\n")
+            gpxStr.append("  </wpt>\n")
+
+            // Destination point
+            val dist = if (selectedLocations.size >= 2) {
+                val cog = calculateCenterOfGravity()
+                if (cog != null) {
+                    calculateDistance(reading.lat, reading.lon, cog.first, cog.second) * 1.5
+                } else {
+                    defaultDist
+                }
+            } else {
+                defaultDist
+            }
+            val point2 = calculateDestination(reading.lat, reading.lon, reading.backAzimuth.toDouble(), dist)
+
+            gpxStr.append("  <wpt lat=\"${point2.first}\" lon=\"${point2.second}\">\n")
+            gpxStr.append("    <name>Line End</name>\n")
+            gpxStr.append("    <type>destination</type>\n")
             gpxStr.append("  </wpt>\n")
         }
 
         val finalCog = calculateCenterOfGravity()
         if (finalCog != null) {
             gpxStr.append("  <wpt lat=\"${finalCog.first}\" lon=\"${finalCog.second}\">\n")
-            gpxStr.append("    <name>🧭 Detected Location</name>\n")
-            gpxStr.append("    <sym>empty</sym>\n")
-            gpxStr.append("    <extensions>\n")
-            gpxStr.append("      <osmand:background>circle</osmand:background>\n")
-            gpxStr.append("      <osmand:color>#00000000</osmand:color>\n")
-            gpxStr.append("    </extensions>\n")
+            gpxStr.append("    <name>Detected Location</name>\n")
+            gpxStr.append("    <type>center</type>\n")
             gpxStr.append("  </wpt>\n")
         } else if (intersection != null) {
             gpxStr.append("  <wpt lat=\"${intersection.first}\" lon=\"${intersection.second}\">\n")
-            gpxStr.append("    <name>🧭 Detected Location</name>\n")
-            gpxStr.append("    <sym>empty</sym>\n")
-            gpxStr.append("    <extensions>\n")
-            gpxStr.append("      <osmand:background>circle</osmand:background>\n")
-            gpxStr.append("      <osmand:color>#00000000</osmand:color>\n")
-            gpxStr.append("    </extensions>\n")
+            gpxStr.append("    <name>Detected Location</name>\n")
+            gpxStr.append("    <type>center</type>\n")
             gpxStr.append("  </wpt>\n")
         }
         gpxStr.append("</gpx>\n")

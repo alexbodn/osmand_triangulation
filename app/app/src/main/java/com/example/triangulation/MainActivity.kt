@@ -121,7 +121,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 }
             })
 
-            cbMagnetic.setOnCheckedChangeListener { _, _ ->
+            cbMagnetic.setOnCheckedChangeListener { _, isChecked ->
+                val sharedPrefs = getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+                sharedPrefs.edit().putBoolean("isMagneticChecked", isChecked).apply()
                 updateBackAzimuthDisplay(true)
             }
 
@@ -276,6 +278,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     private fun loadState() {
         val sharedPrefs = getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+
+        val isMagneticChecked = sharedPrefs.getBoolean("isMagneticChecked", false)
+        cbMagnetic.isChecked = isMagneticChecked
+
         val jsonString = sharedPrefs.getString("locations", null)
         selectedLocations.clear()
         if (jsonString != null) {
@@ -507,9 +513,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         gpxStr.append("    <osmand:show_start_finish>false</osmand:show_start_finish>\n")
         gpxStr.append("    <osmand:show_arrows>true</osmand:show_arrows>\n")
         gpxStr.append("    <osmand:points_groups>\n")
-        gpxStr.append("      <group name=\"origin\" color=\"#0000FF\" icon=\"tourism_viewpoint\" background=\"circle\" />\n")
-        gpxStr.append("      <group name=\"destination\" color=\"#888888\" icon=\"natural_cloud\" background=\"circle\" />\n")
-        gpxStr.append("      <group name=\"center\" color=\"#FF0000\" icon=\"sport_orienteering\" background=\"circle\" />\n")
+        gpxStr.append("      <group name=\"origin\" color=\"#00000000\" icon=\"none\" background=\"none\" />\n")
+        gpxStr.append("      <group name=\"center\" color=\"#00000000\" icon=\"none\" background=\"none\" />\n")
         gpxStr.append("    </osmand:points_groups>\n")
         gpxStr.append("  </extensions>\n")
 
@@ -557,39 +562,24 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
             // Origin point
             gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
-            gpxStr.append("    <name>${formattedAzimuth}°</name>\n")
+            gpxStr.append("    <name>🔭 ${formattedAzimuth}°</name>\n")
             gpxStr.append("    <type>origin</type>\n")
-            gpxStr.append("  </wpt>\n")
-
-            // Destination point
-            val dist = if (selectedLocations.size >= 2) {
-                val cog = calculateCenterOfGravity()
-                if (cog != null) {
-                    calculateDistance(reading.lat, reading.lon, cog.first, cog.second) * 1.5
-                } else {
-                    defaultDist
-                }
-            } else {
-                defaultDist
-            }
-            val point2 = calculateDestination(reading.lat, reading.lon, reading.backAzimuth.toDouble(), dist)
-
-            gpxStr.append("  <wpt lat=\"${point2.first}\" lon=\"${point2.second}\">\n")
-            gpxStr.append("    <name>Line End</name>\n")
-            gpxStr.append("    <type>destination</type>\n")
+            gpxStr.append("    <sym>empty</sym>\n")
             gpxStr.append("  </wpt>\n")
         }
 
         val finalCog = calculateCenterOfGravity()
         if (finalCog != null) {
             gpxStr.append("  <wpt lat=\"${finalCog.first}\" lon=\"${finalCog.second}\">\n")
-            gpxStr.append("    <name>Detected Location</name>\n")
+            gpxStr.append("    <name>🧭 Detected Location</name>\n")
             gpxStr.append("    <type>center</type>\n")
+            gpxStr.append("    <sym>empty</sym>\n")
             gpxStr.append("  </wpt>\n")
         } else if (intersection != null) {
             gpxStr.append("  <wpt lat=\"${intersection.first}\" lon=\"${intersection.second}\">\n")
-            gpxStr.append("    <name>Detected Location</name>\n")
+            gpxStr.append("    <name>🧭 Detected Location</name>\n")
             gpxStr.append("    <type>center</type>\n")
+            gpxStr.append("    <sym>empty</sym>\n")
             gpxStr.append("  </wpt>\n")
         }
         gpxStr.append("</gpx>\n")

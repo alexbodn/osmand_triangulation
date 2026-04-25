@@ -146,13 +146,29 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                     Handler(Looper.getMainLooper()).postDelayed({
                         drawTriangulationPointsOnMap()
 
-                        val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
-                            ?: packageManager.getLaunchIntentForPackage("net.osmand")
+                        val packageToLaunch = if (packageManager.getLaunchIntentForPackage("net.osmand.plus") != null) "net.osmand.plus" else "net.osmand"
+
+                        // First, launch the app to ensure GPX is processing
+                        val launchIntent = packageManager.getLaunchIntentForPackage(packageToLaunch)
                         if (launchIntent != null) {
                             launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                             startActivity(launchIntent)
                         }
-                        finish()
+
+                        // Then, delay slightly and send the geo intent to pan the map
+                        if (selectedLocations.size >= 2) {
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                val cog = calculateCenterOfGravity()
+                                if (cog != null) {
+                                    val geoIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("geo:${cog.first},${cog.second}?z=15"))
+                                    geoIntent.setPackage(packageToLaunch)
+                                    geoIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                    startActivity(geoIntent)
+                                }
+                            }, 500)
+                        }
+
+                        Handler(Looper.getMainLooper()).postDelayed({ finish() }, 1000)
                     }, 500)
                 } else {
                     Toast.makeText(this, "No location selected from OsmAnd. Launch app from OsmAnd context menu or share.", Toast.LENGTH_SHORT).show()
@@ -513,8 +529,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         gpxStr.append("    <osmand:show_start_finish>false</osmand:show_start_finish>\n")
         gpxStr.append("    <osmand:show_arrows>true</osmand:show_arrows>\n")
         gpxStr.append("    <osmand:points_groups>\n")
-        gpxStr.append("      <group name=\"origin\" color=\"#00000000\" icon=\"none\" background=\"none\" />\n")
-        gpxStr.append("      <group name=\"center\" color=\"#00000000\" icon=\"none\" background=\"none\" />\n")
+        gpxStr.append("      <group name=\"origin\" color=\"#0000FF\" icon=\"special_star\" background=\"circle\" />\n")
+        gpxStr.append("      <group name=\"center\" color=\"#FF0000\" icon=\"special_star\" background=\"circle\" />\n")
         gpxStr.append("    </osmand:points_groups>\n")
         gpxStr.append("  </extensions>\n")
 
@@ -562,24 +578,21 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
             // Origin point
             gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
-            gpxStr.append("    <name>🔭 ${formattedAzimuth}°</name>\n")
+            gpxStr.append("    <name>Origin ${formattedAzimuth}°</name>\n")
             gpxStr.append("    <type>origin</type>\n")
-            gpxStr.append("    <sym>empty</sym>\n")
             gpxStr.append("  </wpt>\n")
         }
 
         val finalCog = calculateCenterOfGravity()
         if (finalCog != null) {
             gpxStr.append("  <wpt lat=\"${finalCog.first}\" lon=\"${finalCog.second}\">\n")
-            gpxStr.append("    <name>🧭 Detected Location</name>\n")
+            gpxStr.append("    <name>Detected Location</name>\n")
             gpxStr.append("    <type>center</type>\n")
-            gpxStr.append("    <sym>empty</sym>\n")
             gpxStr.append("  </wpt>\n")
         } else if (intersection != null) {
             gpxStr.append("  <wpt lat=\"${intersection.first}\" lon=\"${intersection.second}\">\n")
-            gpxStr.append("    <name>🧭 Detected Location</name>\n")
+            gpxStr.append("    <name>Detected Location</name>\n")
             gpxStr.append("    <type>center</type>\n")
-            gpxStr.append("    <sym>empty</sym>\n")
             gpxStr.append("  </wpt>\n")
         }
         gpxStr.append("</gpx>\n")

@@ -529,8 +529,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         gpxStr.append("    <osmand:show_start_finish>false</osmand:show_start_finish>\n")
         gpxStr.append("    <osmand:show_arrows>true</osmand:show_arrows>\n")
         gpxStr.append("    <osmand:points_groups>\n")
-        gpxStr.append("      <group name=\"origin\" color=\"#0000FF\" icon=\"special_star\" background=\"circle\" />\n")
-        gpxStr.append("      <group name=\"center\" color=\"#FF0000\" icon=\"special_star\" background=\"circle\" />\n")
+        gpxStr.append("      <group name=\"origin\" color=\"#0000FF\" icon=\"special_marker\" background=\"circle\" />\n")
+        gpxStr.append("      <group name=\"center\" color=\"#FF0000\" icon=\"action_search\" background=\"circle\" />\n")
         gpxStr.append("    </osmand:points_groups>\n")
         gpxStr.append("  </extensions>\n")
 
@@ -574,11 +574,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         gpxStr.append("  </trk>\n")
 
         for (reading in selectedLocations) {
-            val formattedAzimuth = String.format("%.1f", reading.backAzimuth)
+
 
             // Origin point
             gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
-            gpxStr.append("    <name>Origin ${formattedAzimuth}°</name>\n")
             gpxStr.append("    <type>origin</type>\n")
             gpxStr.append("  </wpt>\n")
         }
@@ -586,12 +585,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         val finalCog = calculateCenterOfGravity()
         if (finalCog != null) {
             gpxStr.append("  <wpt lat=\"${finalCog.first}\" lon=\"${finalCog.second}\">\n")
-            gpxStr.append("    <name>Detected Location</name>\n")
             gpxStr.append("    <type>center</type>\n")
             gpxStr.append("  </wpt>\n")
         } else if (intersection != null) {
             gpxStr.append("  <wpt lat=\"${intersection.first}\" lon=\"${intersection.second}\">\n")
-            gpxStr.append("    <name>Detected Location</name>\n")
             gpxStr.append("    <type>center</type>\n")
             gpxStr.append("  </wpt>\n")
         }

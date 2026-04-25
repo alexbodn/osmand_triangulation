@@ -121,9 +121,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 }
             })
 
-            cbMagnetic.setOnCheckedChangeListener { _, isChecked ->
-                val sharedPrefs = getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
-                sharedPrefs.edit().putBoolean("isMagneticChecked", isChecked).apply()
+            cbMagnetic.setOnCheckedChangeListener { _, _ ->
                 updateBackAzimuthDisplay(true)
             }
 
@@ -146,20 +144,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                     Handler(Looper.getMainLooper()).postDelayed({
                         drawTriangulationPointsOnMap()
 
-                        var launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                        val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
                             ?: packageManager.getLaunchIntentForPackage("net.osmand")
-
-                        if (selectedLocations.size >= 2) {
-                            val cog = calculateCenterOfGravity()
-                            if (cog != null) {
-                                launchIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("geo:${cog.first},${cog.second}?z=15"))
-                                launchIntent.setPackage("net.osmand.plus")
-                                if (launchIntent.resolveActivity(packageManager) == null) {
-                                    launchIntent.setPackage("net.osmand")
-                                }
-                            }
-                        }
-
                         if (launchIntent != null) {
                             launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                             startActivity(launchIntent)
@@ -216,11 +202,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         var declinationTargetLat = currentLat ?: 0.0
         var declinationTargetLon = currentLon ?: 0.0
 
-        val cog = calculateCenterOfGravity()
-        if (cog != null) {
-            declinationTargetLat = cog.first
-            declinationTargetLon = cog.second
-        } else if (selectedLocations.isNotEmpty()) {
+        if (selectedLocations.isNotEmpty()) {
             val fakeCurrentReading = Reading(declinationTargetLat, declinationTargetLon, baseAzimuth, (baseAzimuth + 180f) % 360f)
             val r1 = selectedLocations.last()
             val intersection = calculateIntersection(r1, fakeCurrentReading)
@@ -294,9 +276,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     private fun loadState() {
         val sharedPrefs = getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
-        val isMagneticChecked = sharedPrefs.getBoolean("isMagneticChecked", false)
-        cbMagnetic.isChecked = isMagneticChecked
-
         val jsonString = sharedPrefs.getString("locations", null)
         selectedLocations.clear()
         if (jsonString != null) {
@@ -525,6 +504,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         gpxStr.append("<gpx version=\"1.1\" creator=\"Geolocation Triangulation\" xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:osmand=\"https://osmand.net/docs/technical/osmand-file-formats/osmand-gpx\">\n")
         gpxStr.append("  <extensions>\n")
         gpxStr.append("    <osmand:show_start_finish>false</osmand:show_start_finish>\n")
+        gpxStr.append("    <osmand:show_arrows>true</osmand:show_arrows>\n")
         gpxStr.append("  </extensions>\n")
 
         var intersection: Pair<Double, Double>? = null
@@ -571,31 +551,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
             // Origin point with binoculars emoji
             gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
-            gpxStr.append("    <name>\uD83D\uDD2D ${formattedAzimuth}°</name>\n")
+            gpxStr.append("    <name>🔭 ${formattedAzimuth}°</name>\n")
+            gpxStr.append("    <sym>empty</sym>\n")
             gpxStr.append("    <extensions>\n")
-            gpxStr.append("      <osmand:icon>none</osmand:icon>\n")
-            gpxStr.append("      <osmand:background>none</osmand:background>\n")
-            gpxStr.append("    </extensions>\n")
-            gpxStr.append("  </wpt>\n")
-
-            // Destination point (end of line) with cloud emoji
-            val dist = if (selectedLocations.size >= 2) {
-                val cog = calculateCenterOfGravity()
-                if (cog != null) {
-                    calculateDistance(reading.lat, reading.lon, cog.first, cog.second) * 1.5
-                } else {
-                    defaultDist
-                }
-            } else {
-                defaultDist
-            }
-            val point2 = calculateDestination(reading.lat, reading.lon, reading.backAzimuth.toDouble(), dist)
-
-            gpxStr.append("  <wpt lat=\"${point2.first}\" lon=\"${point2.second}\">\n")
-            gpxStr.append("    <name>\u2601\uFE0F</name>\n")
-            gpxStr.append("    <extensions>\n")
-            gpxStr.append("      <osmand:icon>none</osmand:icon>\n")
-            gpxStr.append("      <osmand:background>none</osmand:background>\n")
+            gpxStr.append("      <osmand:background>circle</osmand:background>\n")
+            gpxStr.append("      <osmand:color>#00000000</osmand:color>\n")
             gpxStr.append("    </extensions>\n")
             gpxStr.append("  </wpt>\n")
         }
@@ -603,18 +563,20 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         val finalCog = calculateCenterOfGravity()
         if (finalCog != null) {
             gpxStr.append("  <wpt lat=\"${finalCog.first}\" lon=\"${finalCog.second}\">\n")
-            gpxStr.append("    <name>\uD83E\uDDED Detected Location</name>\n")
+            gpxStr.append("    <name>🧭 Detected Location</name>\n")
+            gpxStr.append("    <sym>empty</sym>\n")
             gpxStr.append("    <extensions>\n")
-            gpxStr.append("      <osmand:icon>none</osmand:icon>\n")
-            gpxStr.append("      <osmand:background>none</osmand:background>\n")
+            gpxStr.append("      <osmand:background>circle</osmand:background>\n")
+            gpxStr.append("      <osmand:color>#00000000</osmand:color>\n")
             gpxStr.append("    </extensions>\n")
             gpxStr.append("  </wpt>\n")
         } else if (intersection != null) {
             gpxStr.append("  <wpt lat=\"${intersection.first}\" lon=\"${intersection.second}\">\n")
-            gpxStr.append("    <name>\uD83E\uDDED Detected Location</name>\n")
+            gpxStr.append("    <name>🧭 Detected Location</name>\n")
+            gpxStr.append("    <sym>empty</sym>\n")
             gpxStr.append("    <extensions>\n")
-            gpxStr.append("      <osmand:icon>none</osmand:icon>\n")
-            gpxStr.append("      <osmand:background>none</osmand:background>\n")
+            gpxStr.append("      <osmand:background>circle</osmand:background>\n")
+            gpxStr.append("      <osmand:color>#00000000</osmand:color>\n")
             gpxStr.append("    </extensions>\n")
             gpxStr.append("  </wpt>\n")
         }

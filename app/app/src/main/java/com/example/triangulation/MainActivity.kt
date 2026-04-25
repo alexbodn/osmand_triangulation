@@ -529,8 +529,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         gpxStr.append("    <osmand:show_start_finish>false</osmand:show_start_finish>\n")
         gpxStr.append("    <osmand:show_arrows>true</osmand:show_arrows>\n")
         gpxStr.append("    <osmand:points_groups>\n")
-        gpxStr.append("      <group name=\"origin\" color=\"#0000FF\" icon=\"special_marker\" background=\"circle\" />\n")
-        gpxStr.append("      <group name=\"center\" color=\"#FF0000\" icon=\"action_search\" background=\"circle\" />\n")
+        gpxStr.append("      <group name=\"origin\" color=\"#0000FF\" icon=\"golf_pin\" background=\"circle\" />\n")
+        gpxStr.append("      <group name=\"center\" color=\"#FF0000\" icon=\"shop_optician\" background=\"circle\" />\n")
         gpxStr.append("    </osmand:points_groups>\n")
         gpxStr.append("  </extensions>\n")
 
@@ -606,6 +606,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         super.onResume()
         rotationVectorSensor?.let {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+        }
+
+        // Ensure ties with OsmAnd are healthy when we regain focus
+        if (!osmandHelper.bindService()) {
+            Toast.makeText(this, "Attempting to reconnect to OsmAnd...", Toast.LENGTH_SHORT).show()
         }
     }
 

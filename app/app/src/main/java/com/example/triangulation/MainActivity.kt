@@ -527,6 +527,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         gpxStr.append("  <extensions>\n")
         gpxStr.append("    <osmand:show_start_finish>false</osmand:show_start_finish>\n")
         gpxStr.append("    <osmand:show_arrows>true</osmand:show_arrows>\n")
+        gpxStr.append("    <osmand:points_groups>\n")
+        gpxStr.append("      <group name=\"origin\" color=\"#00000000\" icon=\"none\" background=\"circle\" />\n")
+        gpxStr.append("      <group name=\"center\" color=\"#00000000\" icon=\"none\" background=\"circle\" />\n")
+        gpxStr.append("    </osmand:points_groups>\n")
         gpxStr.append("  </extensions>\n")
 
         var intersection: Pair<Double, Double>? = null
@@ -572,12 +576,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             // Origin point
             gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
             gpxStr.append("    <name>🧭</name>\n")
-            gpxStr.append("    <sym>empty</sym>\n")
-            gpxStr.append("    <extensions>\n")
-            gpxStr.append("      <osmand:icon>none</osmand:icon>\n")
-            gpxStr.append("      <osmand:background>none</osmand:background>\n")
-            gpxStr.append("      <osmand:color>#00000000</osmand:color>\n")
-            gpxStr.append("    </extensions>\n")
+            gpxStr.append("    <type>origin</type>\n")
             gpxStr.append("  </wpt>\n")
         }
 
@@ -585,22 +584,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         if (finalCog != null) {
             gpxStr.append("  <wpt lat=\"${finalCog.first}\" lon=\"${finalCog.second}\">\n")
             gpxStr.append("    <name>🔍</name>\n")
-            gpxStr.append("    <sym>empty</sym>\n")
-            gpxStr.append("    <extensions>\n")
-            gpxStr.append("      <osmand:icon>none</osmand:icon>\n")
-            gpxStr.append("      <osmand:background>none</osmand:background>\n")
-            gpxStr.append("      <osmand:color>#00000000</osmand:color>\n")
-            gpxStr.append("    </extensions>\n")
+            gpxStr.append("    <type>center</type>\n")
             gpxStr.append("  </wpt>\n")
         } else if (intersection != null) {
             gpxStr.append("  <wpt lat=\"${intersection.first}\" lon=\"${intersection.second}\">\n")
             gpxStr.append("    <name>🔍</name>\n")
-            gpxStr.append("    <sym>empty</sym>\n")
-            gpxStr.append("    <extensions>\n")
-            gpxStr.append("      <osmand:icon>none</osmand:icon>\n")
-            gpxStr.append("      <osmand:background>none</osmand:background>\n")
-            gpxStr.append("      <osmand:color>#00000000</osmand:color>\n")
-            gpxStr.append("    </extensions>\n")
+            gpxStr.append("    <type>center</type>\n")
             gpxStr.append("  </wpt>\n")
         }
         gpxStr.append("</gpx>\n")

@@ -529,8 +529,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         gpxStr.append("    <osmand:show_start_finish>false</osmand:show_start_finish>\n")
         gpxStr.append("    <osmand:show_arrows>true</osmand:show_arrows>\n")
         gpxStr.append("    <osmand:points_groups>\n")
-        gpxStr.append("      <group name=\"origin\" color=\"#0000FF\" icon=\"golf_pin\" background=\"circle\" />\n")
-        gpxStr.append("      <group name=\"center\" color=\"#FF0000\" icon=\"shop_optician\" background=\"circle\" />\n")
+        gpxStr.append("      <group name=\"origin\" color=\"#0000FF\" icon=\"ic_action_compass\" background=\"circle\" />\n")
+        gpxStr.append("      <group name=\"center\" color=\"#FF0000\" icon=\"ic_action_search\" background=\"circle\" />\n")
         gpxStr.append("    </osmand:points_groups>\n")
         gpxStr.append("  </extensions>\n")
 

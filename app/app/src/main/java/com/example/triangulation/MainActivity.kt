@@ -601,7 +601,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         gpxStr.append("    <osmand:elevation_meters>1000.0</osmand:elevation_meters>\n")
         gpxStr.append("    <osmand:points_groups>\n")
         gpxStr.append("      <group name=\"reading\" icon=\"telescope_type_optical\" background=\"none\" />\n")
-        gpxStr.append("      <group name=\"target\" icon=\"poi_null\" background=\"none\" />\n")
+        gpxStr.append("      <group name=\"target\" icon=\"archery\" background=\"none\" />\n")
         gpxStr.append("    </osmand:points_groups>\n")
         gpxStr.append("  </extensions>\n")
 

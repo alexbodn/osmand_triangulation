@@ -524,14 +524,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         val gpxStr = java.lang.StringBuilder()
         gpxStr.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         gpxStr.append("<gpx version=\"1.1\" creator=\"Geolocation Triangulation\" xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:osmand=\"https://osmand.net/docs/technical/osmand-file-formats/osmand-gpx\">\n")
-        gpxStr.append("  <extensions>\n")
-        gpxStr.append("    <osmand:show_start_finish>false</osmand:show_start_finish>\n")
-        gpxStr.append("    <osmand:show_arrows>true</osmand:show_arrows>\n")
-        gpxStr.append("    <osmand:points_groups>\n")
-        gpxStr.append("      <group name=\"origin\" color=\"#0000FF\" icon=\"special_marker\" background=\"circle\" />\n")
-        gpxStr.append("      <group name=\"center\" color=\"#FF0000\" icon=\"special_star\" background=\"circle\" />\n")
-        gpxStr.append("    </osmand:points_groups>\n")
-        gpxStr.append("  </extensions>\n")
 
         var intersection: Pair<Double, Double>? = null
         if (selectedLocations.size >= 2) {
@@ -540,10 +532,30 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
              intersection = calculateIntersection(r1, r2)
         }
 
+        // Add waypoints
+        for (reading in selectedLocations) {
+            val formattedAzimuth = String.format("%.1f", reading.backAzimuth)
+            gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
+            gpxStr.append("    <name>${formattedAzimuth}°</name>\n")
+            gpxStr.append("    <type>reading</type>\n")
+            gpxStr.append("  </wpt>\n")
+        }
+
+        val finalCog = calculateCenterOfGravity()
+        if (finalCog != null) {
+            gpxStr.append("  <wpt lat=\"${finalCog.first}\" lon=\"${finalCog.second}\">\n")
+            gpxStr.append("    <type>target</type>\n")
+            gpxStr.append("  </wpt>\n")
+        } else if (intersection != null) {
+            gpxStr.append("  <wpt lat=\"${intersection.first}\" lon=\"${intersection.second}\">\n")
+            gpxStr.append("    <type>target</type>\n")
+            gpxStr.append("  </wpt>\n")
+        }
+
+        // Add tracks
         gpxStr.append("  <trk>\n")
         gpxStr.append("    <name>Triangulation Lines</name>\n")
 
-        // Parse user-provided distance default
         var defaultDist = 3.0
         try {
             val userDist = etDistance.text.toString().toDouble()
@@ -552,7 +564,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
         for (reading in selectedLocations) {
             gpxStr.append("    <trkseg>\n")
-            gpxStr.append("      <trkpt lat=\"${reading.lat}\" lon=\"${reading.lon}\"></trkpt>\n")
+            gpxStr.append("      <trkpt lat=\"${reading.lat}\" lon=\"${reading.lon}\" />\n")
 
             val dist = if (selectedLocations.size >= 2) {
                 val cog = calculateCenterOfGravity()
@@ -564,30 +576,31 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             } else {
                 defaultDist
             }
-
             val point2 = calculateDestination(reading.lat, reading.lon, reading.backAzimuth.toDouble(), dist)
 
-            gpxStr.append("      <trkpt lat=\"${point2.first}\" lon=\"${point2.second}\"></trkpt>\n")
+            gpxStr.append("      <trkpt lat=\"${point2.first}\" lon=\"${point2.second}\" />\n")
             gpxStr.append("    </trkseg>\n")
         }
         gpxStr.append("  </trk>\n")
 
-        for (reading in selectedLocations) {
-            gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
-            gpxStr.append("    <type>origin</type>\n")
-            gpxStr.append("  </wpt>\n")
-        }
+        // Add extensions at the end exactly like user sample
+        gpxStr.append("  <extensions>\n")
+        gpxStr.append("    <osmand:show_start_finish>false</osmand:show_start_finish>\n")
+        gpxStr.append("    <osmand:show_arrows>true</osmand:show_arrows>\n")
+        gpxStr.append("    <osmand:color>#FF0000</osmand:color>\n")
+        gpxStr.append("    <osmand:split_interval>0.0</osmand:split_interval>\n")
+        gpxStr.append("    <osmand:split_type>no_split</osmand:split_type>\n")
+        gpxStr.append("    <osmand:line_3d_visualization_by_type>none</osmand:line_3d_visualization_by_type>\n")
+        gpxStr.append("    <osmand:line_3d_visualization_wall_color_type>none</osmand:line_3d_visualization_wall_color_type>\n")
+        gpxStr.append("    <osmand:line_3d_visualization_position_type>top</osmand:line_3d_visualization_position_type>\n")
+        gpxStr.append("    <osmand:vertical_exaggeration_scale>1.0</osmand:vertical_exaggeration_scale>\n")
+        gpxStr.append("    <osmand:elevation_meters>1000.0</osmand:elevation_meters>\n")
+        gpxStr.append("    <osmand:points_groups>\n")
+        gpxStr.append("      <group name=\"reading\" icon=\"tourism_viewpoint\" background=\"none\" />\n")
+        gpxStr.append("      <group name=\"target\" icon=\"special_search\" background=\"none\" />\n")
+        gpxStr.append("    </osmand:points_groups>\n")
+        gpxStr.append("  </extensions>\n")
 
-        val finalCog = calculateCenterOfGravity()
-        if (finalCog != null) {
-            gpxStr.append("  <wpt lat=\"${finalCog.first}\" lon=\"${finalCog.second}\">\n")
-            gpxStr.append("    <type>center</type>\n")
-            gpxStr.append("  </wpt>\n")
-        } else if (intersection != null) {
-            gpxStr.append("  <wpt lat=\"${intersection.first}\" lon=\"${intersection.second}\">\n")
-            gpxStr.append("    <type>center</type>\n")
-            gpxStr.append("  </wpt>\n")
-        }
         gpxStr.append("</gpx>\n")
 
         // Pass to AIDL to silently import and display in OsmAnd

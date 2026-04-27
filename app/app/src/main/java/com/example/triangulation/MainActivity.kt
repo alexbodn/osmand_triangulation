@@ -522,8 +522,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         }
 
         val gpxStr = java.lang.StringBuilder()
-        gpxStr.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        gpxStr.append("<gpx version=\"1.1\" creator=\"Geolocation Triangulation\" xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:osmand=\"https://osmand.net/docs/technical/osmand-file-formats/osmand-gpx\">\n")
+        gpxStr.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>\n")
+        gpxStr.append("<gpx version=\"1.1\" creator=\"Geolocation Triangulation\" xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:osmand=\"https://osmand.net/docs/technical/osmand-file-formats/osmand-gpx\" xmlns:gpxtpx=\"https://www8.garmin.com/xmlschemas/TrackPointExtensionv1.xsd\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd\">\n")
+
+        gpxStr.append("  <metadata>\n")
+        gpxStr.append("    <name>triangulation</name>\n")
+        gpxStr.append("  </metadata>\n")
 
         var intersection: Pair<Double, Double>? = null
         if (selectedLocations.size >= 2) {
@@ -596,8 +600,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         gpxStr.append("    <osmand:vertical_exaggeration_scale>1.0</osmand:vertical_exaggeration_scale>\n")
         gpxStr.append("    <osmand:elevation_meters>1000.0</osmand:elevation_meters>\n")
         gpxStr.append("    <osmand:points_groups>\n")
-        gpxStr.append("      <group name=\"reading\" icon=\"tourism_viewpoint\" background=\"none\" />\n")
-        gpxStr.append("      <group name=\"target\" icon=\"special_search\" background=\"none\" />\n")
+        gpxStr.append("      <group name=\"reading\" icon=\"telescope_type_optical\" background=\"none\" />\n")
+        gpxStr.append("      <group name=\"target\" icon=\"poi_null\" background=\"none\" />\n")
         gpxStr.append("    </osmand:points_groups>\n")
         gpxStr.append("  </extensions>\n")
 

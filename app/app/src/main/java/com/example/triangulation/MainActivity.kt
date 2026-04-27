@@ -607,6 +607,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
         gpxStr.append("</gpx>\n")
 
+        // Explicitly remove the old GPX file first to prevent malformed stacking/overriding corruption
+        osmandHelper.removeGpx("triangulation.gpx")
+
         // Pass to AIDL to silently import and display in OsmAnd
         val aidlSuccess = osmandHelper.importGpxFromData(gpxStr.toString(), "triangulation.gpx", "red", true)
 

@@ -64,24 +64,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
         try {
             setContentView(R.layout.activity_main)
-            etAzimuth.setOnEditorActionListener { v, actionId, event ->
-                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
-                    v.clearFocus()
-                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                    imm.hideSoftInputFromWindow(v.windowToken, 0)
-                    true
-                } else false
-            }
-
-            etDistance.setOnEditorActionListener { v, actionId, event ->
-                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
-                    v.clearFocus()
-                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                    imm.hideSoftInputFromWindow(v.windowToken, 0)
-                    true
-                } else false
-            }
-
             ivArrow = findViewById(R.id.ivArrow)
             etAzimuth = findViewById(R.id.etAzimuth)
             tvBackAzimuth = findViewById(R.id.tvBackAzimuth)
@@ -91,6 +73,24 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             btnRegisterOsmAnd = findViewById(R.id.btnRegisterOsmAnd)
             cbMagnetic = findViewById(R.id.cbMagnetic)
             etDistance = findViewById(R.id.etDistance)
+
+            etAzimuth.setOnEditorActionListener { v, actionId, _ ->
+                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                    v.clearFocus()
+                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                    imm.hideSoftInputFromWindow(v.windowToken, 0)
+                    true
+                } else false
+            }
+
+            etDistance.setOnEditorActionListener { v, actionId, _ ->
+                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                    v.clearFocus()
+                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                    imm.hideSoftInputFromWindow(v.windowToken, 0)
+                    true
+                } else false
+            }
 
             sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
             rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)

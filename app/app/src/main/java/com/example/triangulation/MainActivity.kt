@@ -56,6 +56,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     private var currentLat: Double? = null
     private var currentLon: Double? = null
     private var isUserEditing = false
+    private var isManualInputLocked = false
 
     private lateinit var osmandHelper: OsmAndAidlHelper
 
@@ -75,7 +76,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             etDistance = findViewById(R.id.etDistance)
 
             etAzimuth.setOnEditorActionListener { v, actionId, _ ->
-                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE || actionId == android.view.inputmethod.EditorInfo.IME_ACTION_NEXT) {
+                    isManualInputLocked = true
                     v.clearFocus()
                     val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                     imm.hideSoftInputFromWindow(v.windowToken, 0)
@@ -106,7 +108,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
             etAzimuth.setOnFocusChangeListener { _, hasFocus ->
                 isUserEditing = hasFocus
-                if (!hasFocus) {
+                if (hasFocus) {
+                    isManualInputLocked = false
+                } else {
+                    isManualInputLocked = true
                     updateBackAzimuthDisplay(true)
                 }
             }
@@ -193,6 +198,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             }
 
             btnReset.setOnClickListener {
+                isManualInputLocked = false
                 selectedLocations.clear()
                 saveState()
                 updateResetButton()
@@ -658,7 +664,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
-        if (isUserEditing) return // Don't update from sensor if user is editing
+        if (isUserEditing || isManualInputLocked) return // Don't update from sensor if user is editing or has manually locked a value
 
         if (event?.sensor?.type == Sensor.TYPE_ROTATION_VECTOR) {
             val rotationMatrix = FloatArray(9)

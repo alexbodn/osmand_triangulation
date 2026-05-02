@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     private lateinit var btnReset: Button
     private lateinit var btnRegisterOsmAnd: Button
     private lateinit var cbMagnetic: CheckBox
+    private lateinit var cbManualAzimuth: CheckBox
     private lateinit var etDistance: EditText
 
     private var baseAzimuth = 0f // The raw or user-inputted azimuth BEFORE declination
@@ -56,7 +57,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     private var currentLat: Double? = null
     private var currentLon: Double? = null
     private var isUserEditing = false
-    private var isManualInputLocked = false
+
 
     private lateinit var osmandHelper: OsmAndAidlHelper
 
@@ -73,16 +74,28 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             btnReset = findViewById(R.id.btnReset)
             btnRegisterOsmAnd = findViewById(R.id.btnRegisterOsmAnd)
             cbMagnetic = findViewById(R.id.cbMagnetic)
+            cbManualAzimuth = findViewById(R.id.cbManualAzimuth)
             etDistance = findViewById(R.id.etDistance)
 
             etAzimuth.setOnEditorActionListener { v, actionId, _ ->
                 if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE || actionId == android.view.inputmethod.EditorInfo.IME_ACTION_NEXT) {
-                    isManualInputLocked = true
                     v.clearFocus()
                     val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                     imm.hideSoftInputFromWindow(v.windowToken, 0)
                     true
                 } else false
+            }
+
+            cbManualAzimuth.setOnCheckedChangeListener { _, isChecked ->
+                val sharedPrefs = getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+                sharedPrefs.edit().putBoolean("isManualAzimuthChecked", isChecked).apply()
+
+                etAzimuth.isEnabled = isChecked
+                if (!isChecked) {
+                    etAzimuth.clearFocus()
+                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                    imm.hideSoftInputFromWindow(etAzimuth.windowToken, 0)
+                }
             }
 
             etDistance.setOnEditorActionListener { v, actionId, _ ->
@@ -108,10 +121,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
             etAzimuth.setOnFocusChangeListener { _, hasFocus ->
                 isUserEditing = hasFocus
-                if (hasFocus) {
-                    isManualInputLocked = false
-                } else {
-                    isManualInputLocked = true
+                if (!hasFocus) {
                     updateBackAzimuthDisplay(true)
                 }
             }
@@ -198,7 +208,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             }
 
             btnReset.setOnClickListener {
-                isManualInputLocked = false
                 selectedLocations.clear()
                 saveState()
                 updateResetButton()
@@ -320,6 +329,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
         val isMagneticChecked = sharedPrefs.getBoolean("isMagneticChecked", false)
         cbMagnetic.isChecked = isMagneticChecked
+
+        val isManualAzimuthChecked = sharedPrefs.getBoolean("isManualAzimuthChecked", false)
+        cbManualAzimuth.isChecked = isManualAzimuthChecked
+        etAzimuth.isEnabled = isManualAzimuthChecked
 
         val jsonString = sharedPrefs.getString("locations", null)
         selectedLocations.clear()
@@ -664,7 +677,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
-        if (isUserEditing || isManualInputLocked) return // Don't update from sensor if user is editing or has manually locked a value
+        if (cbManualAzimuth.isChecked) return // Don't update from sensor if manual input is enabled
 
         if (event?.sensor?.type == Sensor.TYPE_ROTATION_VECTOR) {
             val rotationMatrix = FloatArray(9)

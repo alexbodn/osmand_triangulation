@@ -52,6 +52,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvDeclination" />
 
+    <CheckBox
+        android:id="@+id/cbManualAzimuth"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Manual Azimuth Input"
+        android:checked="false"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/cbManualAzimuth" />
+
     <LinearLayout
         android:id="@+id/llAzimuth"
         android:layout_width="wrap_content"
@@ -61,7 +72,7 @@
         android:gravity="center_vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/cbMagnetic">
+        app:layout_constraintTop_toBottomOf="@id/cbManualAzimuth">
 
         <TextView
             android:layout_width="wrap_content"

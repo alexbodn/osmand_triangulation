@@ -11,9 +11,8 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_launcher_foreground"
         android:label="Triangulation"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
@@ -50,6 +49,10 @@
             <intent-filter>
                 <action android:name="com.example.triangulation.ACTION_TAKE_BACK_AZIMUTH" />
                 <action android:name="net.osmand.plugin" />
+            </intent-filter>
+            <!-- Try to initialize on update -->
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 

@@ -143,6 +143,12 @@ val params = ContextMenuButtonsParams(
 osmandService?.addContextMenuButtons(params, yourAidlCallbackStub)
 ```
 
+## Icons
+
+The icons defined by the OsmAnd developers are addressable by a name.
+All the icons are in https://github.com/osmandapp/OsmAnd-resources/tree/master/rendering_styles/style-icons/poi-icons-png/drawable-xxhdpi 
+The name to use is the file name in this location, without the prefix 'mx_' and without the file extension.
+
 ## Troubleshooting & Best Practices
 
 * **Seamless Return to OsmAnd:** To return to the OsmAnd map programmatically after an action in your app, execute the launch intent: `packageManager.getLaunchIntentForPackage("net.osmand.plus")`.

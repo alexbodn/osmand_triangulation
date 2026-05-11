@@ -43,11 +43,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     private lateinit var tvBackAzimuth: TextView
     private lateinit var tvDeclination: TextView
     private lateinit var btnSelect: Button
-    private lateinit var btnReset: Button
     private lateinit var btnRegisterOsmAnd: Button
     private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
     private lateinit var etDistance: EditText
+    private lateinit var tvListHeader: TextView
+    private lateinit var llPointsContainer: android.widget.LinearLayout
 
     private var baseAzimuth = 0f // The raw or user-inputted azimuth BEFORE declination
     private var selectedLocations = mutableListOf<Reading>()
@@ -71,11 +72,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             tvBackAzimuth = findViewById(R.id.tvBackAzimuth)
             tvDeclination = findViewById(R.id.tvDeclination)
             btnSelect = findViewById(R.id.btnSelect)
-            btnReset = findViewById(R.id.btnReset)
             btnRegisterOsmAnd = findViewById(R.id.btnRegisterOsmAnd)
             cbMagnetic = findViewById(R.id.cbMagnetic)
             cbManualAzimuth = findViewById(R.id.cbManualAzimuth)
             etDistance = findViewById(R.id.etDistance)
+            tvListHeader = findViewById(R.id.tvListHeader)
+            llPointsContainer = findViewById(R.id.llPointsContainer)
 
             etAzimuth.setOnEditorActionListener { v, actionId, _ ->
                 if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE || actionId == android.view.inputmethod.EditorInfo.IME_ACTION_NEXT) {
@@ -172,7 +174,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                     val backAzimuth = (azimuthToUse + 180) % 360
                     selectedLocations.add(Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth))
                     saveState()
-                    updateResetButton()
+                    updatePointsList()
                     Toast.makeText(this, "Reading saved. Drawing silently on Map...", Toast.LENGTH_SHORT).show()
 
                     Handler(Looper.getMainLooper()).postDelayed({
@@ -207,26 +209,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 }
             }
 
-            btnReset.setOnClickListener {
-                selectedLocations.clear()
-                saveState()
-                updateResetButton()
-
-                // Remove existing line GPX from OsmAnd silently
-                osmandHelper.removeGpx("triangulation.gpx")
-
-                Toast.makeText(this, "Reset points and cleared OsmAnd lines", Toast.LENGTH_SHORT).show()
-
-                // Navigate back to OsmAnd immediately
-                val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
-                    ?: packageManager.getLaunchIntentForPackage("net.osmand")
-                if (launchIntent != null) {
-                    launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    startActivity(launchIntent)
-                }
-                finish()
-            }
-
             btnRegisterOsmAnd.setOnClickListener {
                 val boundService = osmandHelper.bindService()
                 if (boundService) {
@@ -234,18 +216,26 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                     if (added) {
                         Toast.makeText(this, "Successfully registered button to OsmAnd", Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(this, "Failed to register button to OsmAnd", Toast.LENGTH_SHORT).show()
+                        showOsmAndPluginAlert()
                     }
                 } else {
-                    Toast.makeText(this, "Failed to bind to OsmAnd service", Toast.LENGTH_SHORT).show()
+                    showOsmAndPluginAlert()
                 }
             }
 
-            updateResetButton()
+            updatePointsList()
         } catch (e: Exception) {
             Log.e("Triangulation", "Error in onCreate", e)
             Toast.makeText(this, "Startup error: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun showOsmAndPluginAlert() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("OsmAnd Configuration Required")
+            .setMessage("Failed to interact with OsmAnd.\n\nPlease ensure that:\n1. OsmAnd is installed.\n2. The 'OsmAnd development' plugin is enabled in OsmAnd settings.\n3. This Triangulation plugin is enabled in OsmAnd settings.")
+            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+            .show()
     }
 
     private fun calculateCurrentDeclination(): Float {
@@ -466,8 +456,38 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         }
     }
 
-    private fun updateResetButton() {
-        btnReset.text = "Reset (${selectedLocations.size} locations)"
+    private fun updatePointsList() {
+        tvListHeader.text = "Saved Points (${selectedLocations.size})"
+        llPointsContainer.removeAllViews()
+
+        for (i in selectedLocations.indices) {
+            val reading = selectedLocations[i]
+            val view = layoutInflater.inflate(R.layout.item_point, llPointsContainer, false)
+
+            val tvDesc = view.findViewById<TextView>(R.id.tvPointDesc)
+            val btnView = view.findViewById<Button>(R.id.btnView)
+            val btnDelete = view.findViewById<Button>(R.id.btnDelete)
+
+            tvDesc.text = "Back-Azimuth: ${String.format("%.1f", reading.backAzimuth)}°\nLat: ${String.format("%.5f", reading.lat)}, Lon: ${String.format("%.5f", reading.lon)}"
+
+            btnView.setOnClickListener {
+                val packageToLaunch = if (packageManager.getLaunchIntentForPackage("net.osmand.plus") != null) "net.osmand.plus" else "net.osmand"
+                val geoIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("geo:${reading.lat},${reading.lon}?z=15"))
+                geoIntent.setPackage(packageToLaunch)
+                geoIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                startActivity(geoIntent)
+            }
+
+            btnDelete.setOnClickListener {
+                selectedLocations.removeAt(i)
+                saveState()
+                updatePointsList()
+                drawTriangulationPointsOnMap() // Silently redraw without this point
+                Toast.makeText(this, "Point deleted & OsmAnd updated", Toast.LENGTH_SHORT).show()
+            }
+
+            llPointsContainer.addView(view)
+        }
     }
 
     private fun calculateCenterOfGravity(): Pair<Double, Double>? {

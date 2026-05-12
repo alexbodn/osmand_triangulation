@@ -199,6 +199,19 @@ class OsmAndAidlHelper(private val application: Application, private val listene
         }
     }
 
+    fun setMapLocation(lat: Double, lon: Double, zoom: Int = 15): Boolean {
+        if (osmandService == null) {
+            return false
+        }
+        try {
+            val params = net.osmand.aidlapi.map.SetMapLocationParams(lat, lon, zoom, 0f, true)
+            return osmandService?.setMapLocation(params) ?: false
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting map location via AIDL", e)
+            return false
+        }
+    }
+
     companion object {
         private const val TAG = "OsmAndAidlHelper"
     }

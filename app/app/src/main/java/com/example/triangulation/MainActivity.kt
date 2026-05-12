@@ -180,21 +180,18 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                         drawTriangulationPointsOnMap()
 
                         runOnUiThread {
-                            val packageToLaunch = "net.osmand.plus"
-
                             if (selectedLocations.size >= 2) {
                                 val cog = calculateCenterOfGravity()
                                 if (cog != null) {
-                                    val geoIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("geo:${cog.first},${cog.second}?z=15"))
-                                    geoIntent.setPackage(packageToLaunch)
-                                    geoIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                    try {
-                                        startActivity(geoIntent)
-                                    } catch (e: Exception) {
-                                        geoIntent.setPackage("net.osmand")
-                                        startActivity(geoIntent)
-                                    }
+                                    osmandHelper.setMapLocation(cog.first, cog.second, 15)
                                 }
+                            }
+
+                            val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                                ?: packageManager.getLaunchIntentForPackage("net.osmand")
+                            if (launchIntent != null) {
+                                launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                startActivity(launchIntent)
                             }
                             finish()
                         }
@@ -452,14 +449,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             tvAzimuth.text = "${String.format("%.1f", reading.azimuth)}°"
 
             btnView.setOnClickListener {
-                val geoIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("geo:${reading.lat},${reading.lon}?z=15"))
-                geoIntent.setPackage("net.osmand.plus")
-                geoIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                try {
-                    startActivity(geoIntent)
-                } catch (e: Exception) {
-                    geoIntent.setPackage("net.osmand")
-                    startActivity(geoIntent)
+                osmandHelper.setMapLocation(reading.lat, reading.lon, 15)
+                val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                    ?: packageManager.getLaunchIntentForPackage("net.osmand")
+                if (launchIntent != null) {
+                    launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    startActivity(launchIntent)
                 }
                 finish()
             }

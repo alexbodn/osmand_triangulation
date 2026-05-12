@@ -149,9 +149,29 @@ The icons defined by the OsmAnd developers are addressable by a name.
 All the icons are in https://github.com/osmandapp/OsmAnd-resources/tree/master/rendering_styles/style-icons/poi-icons-png/drawable-xxhdpi 
 The name to use is the file name in this location, without the prefix 'mx_' and without the file extension.
 
+### Navigating to a Specific Map Location
+
+When transitioning from your app back to OsmAnd to view a specific location, avoid using standard `geo:lat,lon` intents. OsmAnd intercepts `geo:` intents by triggering its internal "Search by Geolocation" reverse-geocoding overlay, which is notoriously slow and results in a long black screen or waiting period while the map transitions.
+
+To instantly set the map location and bypass the search overlay, use the direct AIDL `setMapLocation` method:
+
+```kotlin
+fun setMapLocation(lat: Double, lon: Double, zoom: Int = 15): Boolean {
+    try {
+        // Create SetMapLocationParams: lat, lon, zoom, rotation, animated
+        val params = net.osmand.aidlapi.map.SetMapLocationParams(lat, lon, zoom, 0f, true)
+        return osmandService?.setMapLocation(params) ?: false
+    } catch (e: Exception) {
+        return false
+    }
+}
+```
+
+After setting the location via AIDL, simply launch OsmAnd's main intent (or call `finish()` if your app was launched transparently) to return the user to the newly focused map view immediately.
+
 ## Troubleshooting & Best Practices
 
-* **Seamless Return to OsmAnd:** To return to the OsmAnd map programmatically after an action in your app, execute the launch intent: `packageManager.getLaunchIntentForPackage("net.osmand.plus")`.
+* **Seamless Return to OsmAnd:** To return to the OsmAnd map programmatically after an action in your app, execute the launch intent: `packageManager.getLaunchIntentForPackage("net.osmand.plus")` or simply call `finish()`. Avoid doing heavy synchronous queries or using `postDelayed` handlers as they will introduce UI lag.
 * **Testing Iterations:** When building for your application, ensure you maintain a consistent APK signature (e.g., using a static debug keystore) across builds. This prevents seamless update issues and ensures OsmAnd remembers your plugin configuration.
 * **Location Parsers:** If your app intercepts data from OsmAnd (e.g., via `ACTION_SEND`), ensure your parsers can handle multiple text formats. OsmAnd may send data as URLs (`lat=X&lon=Y`) or as URIs (`geo:X,Y`).
 

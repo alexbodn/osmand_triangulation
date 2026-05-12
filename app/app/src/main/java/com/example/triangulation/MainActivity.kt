@@ -576,13 +576,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
              intersection = calculateIntersection(r1, r2)
         }
 
-        // Add waypoints
-        for (reading in selectedLocations) {
-            val formattedBackAzimuth = String.format("%.1f", reading.backAzimuth)
-            val formattedDirectAzimuth = String.format("%.1f", reading.azimuth)
-            gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
-            gpxStr.append("    <name>${formattedBackAzimuth}°</name>\n")
-            gpxStr.append("    <desc>Direct Azimuth: ${formattedDirectAzimuth}°</desc>\n")
+        // Add waypoints (only the last reading as requested, but keep all tracks for intersection)
+        if (selectedLocations.isNotEmpty()) {
+            val lastReading = selectedLocations.last()
+            val formattedDirectAzimuth = String.format("%.1f", lastReading.azimuth)
+            gpxStr.append("  <wpt lat=\"${lastReading.lat}\" lon=\"${lastReading.lon}\">\n")
+            gpxStr.append("    <name>${formattedDirectAzimuth}°</name>\n")
             gpxStr.append("    <type>reading</type>\n")
             gpxStr.append("  </wpt>\n")
         }

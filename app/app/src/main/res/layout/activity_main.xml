@@ -152,16 +152,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/llDistance" />
 
-    <Button
-        android:id="@+id/btnRegisterOsmAnd"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Register OsmAnd Context Button"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btnSelect" />
-
     <TextView
         android:id="@+id/tvListHeader"
         android:layout_width="wrap_content"
@@ -172,13 +162,46 @@
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btnRegisterOsmAnd" />
+        app:layout_constraintTop_toBottomOf="@id/btnSelect" />
+
+    <LinearLayout
+        android:id="@+id/llTableHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:padding="8dp"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/tvListHeader">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Direct Azimuth"
+            android:textStyle="bold"
+            android:textAlignment="center" />
+
+        <TextView
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:text="View"
+            android:textStyle="bold"
+            android:textAlignment="center"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:text="Delete"
+            android:textStyle="bold"
+            android:textAlignment="center" />
+
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        app:layout_constraintTop_toBottomOf="@id/tvListHeader"
+        app:layout_constraintTop_toBottomOf="@id/llTableHeader"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <LinearLayout
@@ -186,7 +209,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp" />
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="16dp" />
 
     </ScrollView>
 

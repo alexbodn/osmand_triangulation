@@ -43,7 +43,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     private lateinit var tvBackAzimuth: TextView
     private lateinit var tvDeclination: TextView
     private lateinit var btnSelect: Button
-    private lateinit var btnRegisterOsmAnd: Button
     private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
     private lateinit var etDistance: EditText
@@ -72,7 +71,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             tvBackAzimuth = findViewById(R.id.tvBackAzimuth)
             tvDeclination = findViewById(R.id.tvDeclination)
             btnSelect = findViewById(R.id.btnSelect)
-            btnRegisterOsmAnd = findViewById(R.id.btnRegisterOsmAnd)
             cbMagnetic = findViewById(R.id.cbMagnetic)
             cbManualAzimuth = findViewById(R.id.cbManualAzimuth)
             etDistance = findViewById(R.id.etDistance)
@@ -116,6 +114,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             val bound = osmandHelper.bindService()
             if (!bound) {
                 Log.w("Triangulation", "Failed to initially bind to OsmAnd service")
+                showOsmAndPluginAlert()
             }
 
             loadState()
@@ -177,49 +176,37 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                     updatePointsList()
                     Toast.makeText(this, "Reading saved. Drawing silently on Map...", Toast.LENGTH_SHORT).show()
 
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        drawTriangulationPointsOnMap()
+                    drawTriangulationPointsOnMap()
 
-                        val packageToLaunch = if (packageManager.getLaunchIntentForPackage("net.osmand.plus") != null) "net.osmand.plus" else "net.osmand"
+                    val packageToLaunch = if (packageManager.getLaunchIntentForPackage("net.osmand.plus") != null) "net.osmand.plus" else "net.osmand"
 
-                        // First, launch the app to ensure GPX is processing
+                    // If we have 2 or more points, calculate intersection and launch geo intent to pan there.
+                    // Otherwise, just launch the main app intent.
+                    if (selectedLocations.size >= 2) {
+                        val cog = calculateCenterOfGravity()
+                        if (cog != null) {
+                            val geoIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("geo:${cog.first},${cog.second}?z=15"))
+                            geoIntent.setPackage(packageToLaunch)
+                            geoIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                            startActivity(geoIntent)
+                        } else {
+                            val launchIntent = packageManager.getLaunchIntentForPackage(packageToLaunch)
+                            if (launchIntent != null) {
+                                launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                startActivity(launchIntent)
+                            }
+                        }
+                    } else {
                         val launchIntent = packageManager.getLaunchIntentForPackage(packageToLaunch)
                         if (launchIntent != null) {
                             launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                             startActivity(launchIntent)
                         }
+                    }
 
-                        // Then, delay slightly and send the geo intent to pan the map
-                        if (selectedLocations.size >= 2) {
-                            Handler(Looper.getMainLooper()).postDelayed({
-                                val cog = calculateCenterOfGravity()
-                                if (cog != null) {
-                                    val geoIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("geo:${cog.first},${cog.second}?z=15"))
-                                    geoIntent.setPackage(packageToLaunch)
-                                    geoIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                                    startActivity(geoIntent)
-                                }
-                            }, 500)
-                        }
-
-                        Handler(Looper.getMainLooper()).postDelayed({ finish() }, 1000)
-                    }, 500)
+                    finish()
                 } else {
                     Toast.makeText(this, "No location selected from OsmAnd. Launch app from OsmAnd context menu or share.", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            btnRegisterOsmAnd.setOnClickListener {
-                val boundService = osmandHelper.bindService()
-                if (boundService) {
-                    val added = osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")
-                    if (added) {
-                        Toast.makeText(this, "Successfully registered button to OsmAnd", Toast.LENGTH_SHORT).show()
-                    } else {
-                        showOsmAndPluginAlert()
-                    }
-                } else {
-                    showOsmAndPluginAlert()
                 }
             }
 
@@ -464,11 +451,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             val reading = selectedLocations[i]
             val view = layoutInflater.inflate(R.layout.item_point, llPointsContainer, false)
 
-            val tvDesc = view.findViewById<TextView>(R.id.tvPointDesc)
+            val tvAzimuth = view.findViewById<TextView>(R.id.tvPointAzimuth)
             val btnView = view.findViewById<Button>(R.id.btnView)
             val btnDelete = view.findViewById<Button>(R.id.btnDelete)
 
-            tvDesc.text = "Back-Azimuth: ${String.format("%.1f", reading.backAzimuth)}°\nLat: ${String.format("%.5f", reading.lat)}, Lon: ${String.format("%.5f", reading.lon)}"
+            tvAzimuth.text = "${String.format("%.1f", reading.azimuth)}°"
 
             btnView.setOnClickListener {
                 val packageToLaunch = if (packageManager.getLaunchIntentForPackage("net.osmand.plus") != null) "net.osmand.plus" else "net.osmand"
@@ -476,6 +463,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 geoIntent.setPackage(packageToLaunch)
                 geoIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 startActivity(geoIntent)
+                finish()
             }
 
             btnDelete.setOnClickListener {

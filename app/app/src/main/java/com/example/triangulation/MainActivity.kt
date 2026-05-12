@@ -176,35 +176,29 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                     updatePointsList()
                     Toast.makeText(this, "Reading saved. Drawing silently on Map...", Toast.LENGTH_SHORT).show()
 
-                    drawTriangulationPointsOnMap()
+                    Thread {
+                        drawTriangulationPointsOnMap()
 
-                    val packageToLaunch = if (packageManager.getLaunchIntentForPackage("net.osmand.plus") != null) "net.osmand.plus" else "net.osmand"
+                        runOnUiThread {
+                            val packageToLaunch = "net.osmand.plus"
 
-                    // If we have 2 or more points, calculate intersection and launch geo intent to pan there.
-                    // Otherwise, just launch the main app intent.
-                    if (selectedLocations.size >= 2) {
-                        val cog = calculateCenterOfGravity()
-                        if (cog != null) {
-                            val geoIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("geo:${cog.first},${cog.second}?z=15"))
-                            geoIntent.setPackage(packageToLaunch)
-                            geoIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                            startActivity(geoIntent)
-                        } else {
-                            val launchIntent = packageManager.getLaunchIntentForPackage(packageToLaunch)
-                            if (launchIntent != null) {
-                                launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                                startActivity(launchIntent)
+                            if (selectedLocations.size >= 2) {
+                                val cog = calculateCenterOfGravity()
+                                if (cog != null) {
+                                    val geoIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("geo:${cog.first},${cog.second}?z=15"))
+                                    geoIntent.setPackage(packageToLaunch)
+                                    geoIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                    try {
+                                        startActivity(geoIntent)
+                                    } catch (e: Exception) {
+                                        geoIntent.setPackage("net.osmand")
+                                        startActivity(geoIntent)
+                                    }
+                                }
                             }
+                            finish()
                         }
-                    } else {
-                        val launchIntent = packageManager.getLaunchIntentForPackage(packageToLaunch)
-                        if (launchIntent != null) {
-                            launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                            startActivity(launchIntent)
-                        }
-                    }
-
-                    finish()
+                    }.start()
                 } else {
                     Toast.makeText(this, "No location selected from OsmAnd. Launch app from OsmAnd context menu or share.", Toast.LENGTH_SHORT).show()
                 }
@@ -458,11 +452,15 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             tvAzimuth.text = "${String.format("%.1f", reading.azimuth)}°"
 
             btnView.setOnClickListener {
-                val packageToLaunch = if (packageManager.getLaunchIntentForPackage("net.osmand.plus") != null) "net.osmand.plus" else "net.osmand"
                 val geoIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("geo:${reading.lat},${reading.lon}?z=15"))
-                geoIntent.setPackage(packageToLaunch)
-                geoIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                startActivity(geoIntent)
+                geoIntent.setPackage("net.osmand.plus")
+                geoIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                try {
+                    startActivity(geoIntent)
+                } catch (e: Exception) {
+                    geoIntent.setPackage("net.osmand")
+                    startActivity(geoIntent)
+                }
                 finish()
             }
 
@@ -470,7 +468,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 selectedLocations.removeAt(i)
                 saveState()
                 updatePointsList()
-                drawTriangulationPointsOnMap() // Silently redraw without this point
+                Thread {
+                    drawTriangulationPointsOnMap() // Silently redraw without this point
+                }.start()
                 Toast.makeText(this, "Point deleted & OsmAnd updated", Toast.LENGTH_SHORT).show()
             }
 

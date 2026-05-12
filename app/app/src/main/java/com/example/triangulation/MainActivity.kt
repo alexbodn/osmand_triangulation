@@ -557,6 +557,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     private fun drawTriangulationPointsOnMap() {
         if (selectedLocations.isEmpty()) {
+            osmandHelper.removeGpx("triangulation.gpx")
             return
         }
 
@@ -577,9 +578,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
         // Add waypoints
         for (reading in selectedLocations) {
-            val formattedAzimuth = String.format("%.1f", reading.backAzimuth)
+            val formattedBackAzimuth = String.format("%.1f", reading.backAzimuth)
+            val formattedDirectAzimuth = String.format("%.1f", reading.azimuth)
             gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
-            gpxStr.append("    <name>${formattedAzimuth}°</name>\n")
+            gpxStr.append("    <name>${formattedBackAzimuth}°</name>\n")
+            gpxStr.append("    <desc>Direct Azimuth: ${formattedDirectAzimuth}°</desc>\n")
             gpxStr.append("    <type>reading</type>\n")
             gpxStr.append("  </wpt>\n")
         }

@@ -177,3 +177,64 @@ After setting the location via AIDL, simply launch OsmAnd's main intent (or call
 
 ---
 *This manual was compiled from hands-on integration experience and is designed to provide robust solutions for typical pitfalls encountered with the OsmAnd AIDL API.*
+
+## Validating OsmAnd Installation and Plugin Status
+
+Before attempting to communicate with OsmAnd, applications should proactively check if either OsmAnd or OsmAnd+ is installed and whether the "OsmAnd development" plugin is enabled.
+
+### Checking for Installation
+
+You can check if OsmAnd is installed by querying the PackageManager. Ensure your `AndroidManifest.xml` has the `<queries>` block configured as shown above.
+
+```kotlin
+fun isOsmAndInstalled(context: Context): Boolean {
+    val pm = context.packageManager
+
+    var osmandInstalled = false
+    try {
+        pm.getPackageInfo("net.osmand", 0)
+        osmandInstalled = true
+    } catch (e: PackageManager.NameNotFoundException) {
+    }
+
+    var osmandPlusInstalled = false
+    try {
+        pm.getPackageInfo("net.osmand.plus", 0)
+        osmandPlusInstalled = true
+    } catch (e: PackageManager.NameNotFoundException) {
+    }
+
+    return osmandInstalled || osmandPlusInstalled
+}
+```
+
+### Prompting User for Action
+
+If the application is not installed, or if an AIDL operation fails (which often implies the "OsmAnd development" plugin is disabled), prompt the user with clear instructions and provide deep links.
+
+```kotlin
+fun showOsmAndActionDialog(context: Context) {
+    android.app.AlertDialog.Builder(context)
+        .setTitle("Action Required")
+        .setMessage("Please install OsmAnd if it is not installed, and ensure the 'OsmAnd development' plugin is enabled in OsmAnd's plugin menu.")
+        .setPositiveButton("Open OsmAnd") { _, _ ->
+            val launchIntent = context.packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                ?: context.packageManager.getLaunchIntentForPackage("net.osmand")
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                context.startActivity(launchIntent)
+            } else {
+                try {
+                    val playStoreIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=net.osmand.plus"))
+                    playStoreIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(playStoreIntent)
+                } catch (e: Exception) {
+                    val webIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=net.osmand.plus"))
+                    context.startActivity(webIntent)
+                }
+            }
+        }
+        .setNegativeButton("Cancel", null)
+        .show()
+}
+```

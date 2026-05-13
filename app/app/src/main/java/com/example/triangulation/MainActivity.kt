@@ -60,6 +60,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
 
     private lateinit var osmandHelper: OsmAndAidlHelper
+    private var isPluginDialogShowing = false
+    private var isInstallDialogShowing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -111,11 +113,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
 
             osmandHelper = OsmAndAidlHelper(application, this)
-            val bound = osmandHelper.bindService()
-            if (!bound) {
-                Log.w("Triangulation", "Failed to initially bind to OsmAnd service")
-                showOsmAndPluginAlert()
-            }
+            // Binding and install checks are handled in onResume()
 
             loadState()
             handleIntent(intent)
@@ -183,7 +181,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                             if (selectedLocations.size >= 2) {
                                 val cog = calculateCenterOfGravity()
                                 if (cog != null) {
-                                    osmandHelper.setMapLocation(cog.first, cog.second, 15)
+                                    if (!osmandHelper.setMapLocation(cog.first, cog.second, 15)) showOsmAndPluginAlert()
                                 }
                             }
 
@@ -209,10 +207,54 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     }
 
     private fun showOsmAndPluginAlert() {
+        if (isPluginDialogShowing) return
+        isPluginDialogShowing = true
         android.app.AlertDialog.Builder(this)
-            .setTitle("OsmAnd Configuration Required")
-            .setMessage("Failed to interact with OsmAnd.\n\nPlease ensure that:\n1. OsmAnd is installed.\n2. The 'OsmAnd development' plugin is enabled in OsmAnd settings.\n3. This Triangulation plugin is enabled in OsmAnd settings.")
-            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+            .setTitle("OsmAnd Plugin Required")
+            .setMessage("Failed to interact with OsmAnd.\n\nPlease ensure that this Triangulation app is enabled in OsmAnd's plugin settings.")
+            .setPositiveButton("OK") { dialog, _ ->
+                isPluginDialogShowing = false
+                dialog.dismiss()
+            }
+            .setOnDismissListener {
+                isPluginDialogShowing = false
+            }
+            .show()
+    }
+
+    private fun showOsmAndInstallDialog() {
+        if (isInstallDialogShowing) return
+        isInstallDialogShowing = true
+        android.app.AlertDialog.Builder(this)
+            .setTitle("OsmAnd Required")
+            .setMessage("This app requires OsmAnd to function correctly.\n\nPlease install either OsmAnd or OsmAnd+.")
+            .setPositiveButton("Install OsmAnd") { dialog, _ ->
+                isInstallDialogShowing = false
+                try {
+                    val playStoreIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=net.osmand"))
+                    playStoreIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(playStoreIntent)
+                } catch (e: Exception) {
+                    val webIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=net.osmand"))
+                    startActivity(webIntent)
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Install OsmAnd+") { dialog, _ ->
+                isInstallDialogShowing = false
+                try {
+                    val playStoreIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=net.osmand.plus"))
+                    playStoreIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(playStoreIntent)
+                } catch (e: Exception) {
+                    val webIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=net.osmand.plus"))
+                    startActivity(webIntent)
+                }
+                dialog.dismiss()
+            }
+            .setOnDismissListener {
+                isInstallDialogShowing = false
+            }
             .show()
     }
 
@@ -244,7 +286,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         runOnUiThread {
             Toast.makeText(this, "Connected to OsmAnd API", Toast.LENGTH_SHORT).show()
         }
-        osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")
+        if (!osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")) runOnUiThread { showOsmAndPluginAlert() }
     }
 
     override fun onOsmAndServiceDisconnected() {
@@ -449,7 +491,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             tvAzimuth.text = "${String.format("%.1f", reading.azimuth)}°"
 
             btnView.setOnClickListener {
-                osmandHelper.setMapLocation(reading.lat, reading.lon, 15)
+                if (!osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) showOsmAndPluginAlert()
                 val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
                     ?: packageManager.getLaunchIntentForPackage("net.osmand")
                 if (launchIntent != null) {
@@ -557,7 +599,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     private fun drawTriangulationPointsOnMap() {
         if (selectedLocations.isEmpty()) {
-            osmandHelper.removeGpx("triangulation.gpx")
+            if (!osmandHelper.removeGpx("triangulation.gpx")) showOsmAndPluginAlert()
             return
         }
 
@@ -649,13 +691,13 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         gpxStr.append("</gpx>\n")
 
         // Explicitly remove the old GPX file first to prevent malformed stacking/overriding corruption
-        osmandHelper.removeGpx("triangulation.gpx")
+        if (!osmandHelper.removeGpx("triangulation.gpx")) showOsmAndPluginAlert()
 
         // Pass to AIDL to silently import and display in OsmAnd
         val aidlSuccess = osmandHelper.importGpxFromData(gpxStr.toString(), "triangulation.gpx", "red", true)
 
         if (!aidlSuccess) {
-            Toast.makeText(this, "Failed to send GPX to OsmAnd via AIDL", Toast.LENGTH_SHORT).show()
+            showOsmAndPluginAlert()
         }
     }
 
@@ -665,9 +707,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
 
-        // Ensure ties with OsmAnd are healthy when we regain focus
-        if (!osmandHelper.bindService()) {
-            Toast.makeText(this, "Attempting to reconnect to OsmAnd...", Toast.LENGTH_SHORT).show()
+        // Check if OsmAnd is installed first
+        if (!OsmAndAidlHelper.isOsmAndInstalled(this)) {
+            showOsmAndInstallDialog()
+        } else {
+            // Ensure ties with OsmAnd are healthy when we regain focus
+            if (!osmandHelper.bindService()) {
+                showOsmAndPluginAlert()
+            }
         }
     }
 

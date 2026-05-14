@@ -212,9 +212,20 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             isPluginDialogShowing = true
             android.app.AlertDialog.Builder(this@MainActivity)
                 .setTitle("OsmAnd Plugin Required")
+                .setCancelable(false)
                 .setMessage("Failed to interact with OsmAnd.\n\nPlease ensure that this Triangulation app is enabled in OsmAnd's plugin settings.")
                 .setPositiveButton("OK") { dialog, _ ->
                     isPluginDialogShowing = false
+                    dialog.dismiss()
+                }
+                .setNeutralButton("Open OsmAnd") { dialog, _ ->
+                    isPluginDialogShowing = false
+                    val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                        ?: packageManager.getLaunchIntentForPackage("net.osmand")
+                    if (launchIntent != null) {
+                        launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                        startActivity(launchIntent)
+                    }
                     dialog.dismiss()
                 }
                 .setOnDismissListener {
@@ -230,6 +241,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             isInstallDialogShowing = true
             android.app.AlertDialog.Builder(this@MainActivity)
                 .setTitle("OsmAnd Required")
+                .setCancelable(false)
                 .setMessage("This app requires OsmAnd to function correctly.\n\nPlease install either OsmAnd or OsmAnd+.")
                 .setPositiveButton("Install OsmAnd") { dialog, _ ->
                     isInstallDialogShowing = false
@@ -718,14 +730,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
 
+        // Ensure ties with OsmAnd are healthy when we regain focus
+        val bound = osmandHelper.bindService()
+
         // Check if OsmAnd is installed first
         if (!OsmAndAidlHelper.isOsmAndInstalled(this)) {
             showOsmAndInstallDialog()
-        } else {
-            // Ensure ties with OsmAnd are healthy when we regain focus
-            if (!osmandHelper.bindService()) {
-                showOsmAndPluginAlert()
-            }
+        } else if (!bound) {
+            showOsmAndPluginAlert()
         }
 
         // Disable editing if we don't have a location

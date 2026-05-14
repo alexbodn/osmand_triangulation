@@ -181,7 +181,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                             if (selectedLocations.size >= 2) {
                                 val cog = calculateCenterOfGravity()
                                 if (cog != null) {
-                                    if (!osmandHelper.setMapLocation(cog.first, cog.second, 15)) showOsmAndPluginAlert()
+                                    if (!osmandHelper.setMapLocation(cog.first, cog.second, 15)) Toast.makeText(this@MainActivity, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show()
                                 }
                             }
 
@@ -290,7 +290,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         runOnUiThread {
             Toast.makeText(this, "Connected to OsmAnd API", Toast.LENGTH_SHORT).show()
         }
-        if (!osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")) showOsmAndPluginAlert()
+        if (!osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")) Toast.makeText(this, "Failed to add context menu to OsmAnd", Toast.LENGTH_SHORT).show()
     }
 
     override fun onOsmAndServiceDisconnected() {
@@ -502,7 +502,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             tvAzimuth.text = "${String.format("%.1f", reading.azimuth)}°"
 
             btnView.setOnClickListener {
-                if (!osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) showOsmAndPluginAlert()
+                if (!osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) Toast.makeText(this, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show()
                 val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
                     ?: packageManager.getLaunchIntentForPackage("net.osmand")
                 if (launchIntent != null) {
@@ -610,7 +610,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     private fun drawTriangulationPointsOnMap() {
         if (selectedLocations.isEmpty()) {
-            if (!osmandHelper.removeGpx("triangulation.gpx")) showOsmAndPluginAlert()
+            if (!osmandHelper.removeGpx("triangulation.gpx")) runOnUiThread { Toast.makeText(this@MainActivity, "Failed to update OsmAnd map", Toast.LENGTH_SHORT).show() }
             return
         }
 
@@ -702,13 +702,13 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         gpxStr.append("</gpx>\n")
 
         // Explicitly remove the old GPX file first to prevent malformed stacking/overriding corruption
-        if (!osmandHelper.removeGpx("triangulation.gpx")) showOsmAndPluginAlert()
+        if (!osmandHelper.removeGpx("triangulation.gpx")) runOnUiThread { Toast.makeText(this@MainActivity, "Failed to update OsmAnd map", Toast.LENGTH_SHORT).show() }
 
         // Pass to AIDL to silently import and display in OsmAnd
         val aidlSuccess = osmandHelper.importGpxFromData(gpxStr.toString(), "triangulation.gpx", "red", true)
 
         if (!aidlSuccess) {
-            showOsmAndPluginAlert()
+            runOnUiThread { Toast.makeText(this@MainActivity, "Failed to send GPX to OsmAnd via AIDL", Toast.LENGTH_SHORT).show() }
         }
     }
 
@@ -727,6 +727,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 showOsmAndPluginAlert()
             }
         }
+
+        // Disable editing if we don't have a location
+        val hasLocation = currentLat != null && currentLon != null
+        btnSelect.isEnabled = hasLocation
+        etAzimuth.isEnabled = hasLocation
     }
 
     override fun onPause() {

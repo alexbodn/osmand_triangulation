@@ -217,7 +217,7 @@ class OsmAndAidlHelper(private val application: Application, private val listene
                 osmandPlusInstalled = true
             } catch (e: android.content.pm.PackageManager.NameNotFoundException) {}
 
-            return osmandInstalled || osmandPlusInstalled
+            return osmandInstalled && osmandPlusInstalled // Temporary: require BOTH for testing purposes
         }
     }
 }

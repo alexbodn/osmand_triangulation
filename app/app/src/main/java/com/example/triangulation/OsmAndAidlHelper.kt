@@ -192,7 +192,7 @@ class OsmAndAidlHelper(private val application: Application, private val listene
             return false
         }
         try {
-            val params = net.osmand.aidlapi.map.SetMapLocationParams(lat, lon, zoom, 0f, true)
+            val params = net.osmand.aidlapi.map.SetMapLocationParams(lat, lon, zoom, 0f, false)
             return osmandService?.setMapLocation(params) ?: false
         } catch (e: Exception) {
             Log.e(TAG, "Error setting map location via AIDL", e)

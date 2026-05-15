@@ -622,7 +622,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     private fun drawTriangulationPointsOnMap() {
         if (selectedLocations.isEmpty()) {
-            if (!osmandHelper.removeGpx("triangulation.gpx")) runOnUiThread { Toast.makeText(this@MainActivity, "Failed to update OsmAnd map", Toast.LENGTH_SHORT).show() }
+            osmandHelper.removeGpx("triangulation.gpx")
             return
         }
 
@@ -714,7 +714,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         gpxStr.append("</gpx>\n")
 
         // Explicitly remove the old GPX file first to prevent malformed stacking/overriding corruption
-        if (!osmandHelper.removeGpx("triangulation.gpx")) runOnUiThread { Toast.makeText(this@MainActivity, "Failed to update OsmAnd map", Toast.LENGTH_SHORT).show() }
+        osmandHelper.removeGpx("triangulation.gpx")
 
         // Pass to AIDL to silently import and display in OsmAnd
         val aidlSuccess = osmandHelper.importGpxFromData(gpxStr.toString(), "triangulation.gpx", "red", true)
@@ -749,6 +749,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     override fun onPause() {
         super.onPause()
         sensorManager.unregisterListener(this)
+
+        currentLat = null
+        currentLon = null
+        Toast.makeText(this, "onPause executed", Toast.LENGTH_SHORT).show()
     }
 
     override fun onDestroy() {

@@ -188,6 +188,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                                 }
                             }
 
+                            val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                                ?: packageManager.getLaunchIntentForPackage("net.osmand")
+                            if (launchIntent != null) {
+                                launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                                startActivity(launchIntent)
+                            }
                             finish()
                         }
                     }.start()
@@ -517,6 +523,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
             btnView.setOnClickListener {
                 if (!osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) Toast.makeText(this, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show()
+                val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                    ?: packageManager.getLaunchIntentForPackage("net.osmand")
+                if (launchIntent != null) {
+                    launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                    startActivity(launchIntent)
+                }
                 finish()
             }
 
@@ -738,7 +750,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         // Disable editing if we don't have a location
         val hasLocation = currentLat != null && currentLon != null
         btnSelect.isEnabled = hasLocation
-        etAzimuth.isEnabled = hasLocation
+        cbManualAzimuth.isEnabled = hasLocation
+        etAzimuth.isEnabled = hasLocation && cbManualAzimuth.isChecked
+
+        if (hasLocation) {
+            title = "Loc: ${String.format("%.5f", currentLat)}, ${String.format("%.5f", currentLon)}"
+        } else {
+            title = "Triangulation - No Location"
+        }
     }
 
     override fun onPause() {

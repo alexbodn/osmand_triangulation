@@ -66,6 +66,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        currentLat = null
+        currentLon = null
+
         try {
             setContentView(R.layout.activity_main)
             ivArrow = findViewById(R.id.ivArrow)
@@ -185,12 +188,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                                 }
                             }
 
-                            val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
-                                ?: packageManager.getLaunchIntentForPackage("net.osmand")
-                            if (launchIntent != null) {
-                                launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                startActivity(launchIntent)
-                            }
                             finish()
                         }
                     }.start()
@@ -495,6 +492,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
         if (locationParsed) {
             // Clear the intent so that resuming the app later doesn't re-process the old location
+            intent?.removeExtra("lat")
+            intent?.removeExtra("lon")
+            intent?.removeExtra(Intent.EXTRA_TEXT)
+            intent?.data = null
+            intent?.action = null
             setIntent(Intent())
         }
     }
@@ -515,12 +517,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
             btnView.setOnClickListener {
                 if (!osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) Toast.makeText(this, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show()
-                val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
-                    ?: packageManager.getLaunchIntentForPackage("net.osmand")
-                if (launchIntent != null) {
-                    launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    startActivity(launchIntent)
-                }
                 finish()
             }
 

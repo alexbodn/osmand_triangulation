@@ -66,6 +66,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Toast.makeText(this, "onCreate executed", Toast.LENGTH_SHORT).show()
 
         currentLat = null
         currentLon = null

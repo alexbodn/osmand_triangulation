@@ -197,13 +197,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                         drawTriangulationPointsOnMap()
 
                         runOnUiThread {
-                            if (selectedLocations.size >= 2) {
-                                val cog = calculateCenterOfGravity()
-                                if (cog != null) {
-                                    if (!osmandHelper.setMapLocation(cog.first, cog.second, 15)) Toast.makeText(this@MainActivity, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-
                             val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
                                 ?: packageManager.getLaunchIntentForPackage("net.osmand")
                             if (launchIntent != null) {
@@ -211,6 +204,18 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                                 startActivity(launchIntent)
                             }
                             // Removed finish() so that returning to the app from background won't replay the intent via onCreate
+
+                            if (selectedLocations.size >= 2) {
+                                val cog = calculateCenterOfGravity()
+                                if (cog != null) {
+                                    Thread {
+                                        Thread.sleep(300)
+                                        if (!osmandHelper.setMapLocation(cog.first, cog.second, 15)) {
+                                            runOnUiThread { Toast.makeText(this@MainActivity, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() }
+                                        }
+                                    }.start()
+                                }
+                            }
                         }
                     }.start()
                 } else {
@@ -240,15 +245,22 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 }
 
                 if (targetLat != null && targetLon != null) {
-                    if (!osmandHelper.setMapLocation(targetLat, targetLon, 15)) {
-                        Toast.makeText(this, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show()
-                    }
+                    val finalLat = targetLat
+                    val finalLon = targetLon
+
                     val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
                         ?: packageManager.getLaunchIntentForPackage("net.osmand")
                     if (launchIntent != null) {
                         launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                         startActivity(launchIntent)
                     }
+
+                    Thread {
+                        Thread.sleep(300)
+                        if (!osmandHelper.setMapLocation(finalLat, finalLon, 15)) {
+                            runOnUiThread { Toast.makeText(this@MainActivity, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() }
+                        }
+                    }.start()
                 } else {
                     Toast.makeText(this, "Could not calculate intersection.", Toast.LENGTH_SHORT).show()
                 }
@@ -578,14 +590,19 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             tvAzimuth.text = "${String.format("%.1f", reading.azimuth)}°"
 
             btnView.setOnClickListener {
-                if (!osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) Toast.makeText(this, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show()
                 val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
                     ?: packageManager.getLaunchIntentForPackage("net.osmand")
                 if (launchIntent != null) {
                     launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                     startActivity(launchIntent)
                 }
-                // Removed finish()
+
+                Thread {
+                    Thread.sleep(300)
+                    if (!osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) {
+                        runOnUiThread { Toast.makeText(this@MainActivity, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() }
+                    }
+                }.start()
             }
 
             btnDelete.setOnClickListener {

@@ -167,11 +167,77 @@ fun setMapLocation(lat: Double, lon: Double, zoom: Int = 15): Boolean {
 }
 ```
 
-After setting the location via AIDL, simply launch OsmAnd's main intent (or call `finish()` if your app was launched transparently) to return the user to the newly focused map view immediately.
+After setting the location via AIDL, launch OsmAnd's main intent to return the user to the newly focused map view immediately. **Avoid calling `finish()`** on your Activity if you plan to return to it later, as finishing it will cause Android to drop it from the backstack and recreate it from scratch (replaying the original launch intent) when the user resumes your app from the recent apps menu.
+
+
+### Receiving Location Parameters from OsmAnd
+
+When OsmAnd shares a location with your app, it typically does so via an `ACTION_SEND` intent with plain text, or via explicit `geo:` intents. OsmAnd may send data formatted as URLs (`lat=X&lon=Y`) or as URIs (`geo:X,Y`).
+
+**Best Practices for Consuming Intents:**
+
+1.  **Parse Multiple Formats:** Ensure your parser handles standard `geo:` URIs as well as regex extraction for `lat=` and `lon=` patterns from shared text.
+2.  **Capture Raw Inputs:** For debugging or UI display, capture the raw string parameter directly from the Intent before parsing. Displaying this raw parameter (rather than the parsed coordinate values) provides exact tracking of what OsmAnd sent.
+3.  **Consume Exactly Once:** Store the parsed coordinates in variables, but explicitly **nullify them** immediately after they are used (e.g., when the user taps a button to confirm the location). This ensures the location is consumed exactly once and prevents "ghost" locations from persisting.
+4.  **Do Not Call `finish()`:** When launching OsmAnd to return the user to the map, **avoid calling `finish()`**. If your Activity is finished, Android drops it from the backstack. If the user subsequently manually resumes your app, Android will restart it via `onCreate()` and replay the original launch Intent (including the old location parameters), breaking the "consume exactly once" principle. Leaving the Activity in the background preserves its state where the location parameters have been safely nullified.
+
+Example handling:
+
+```kotlin
+private var currentLat: Double? = null
+private var currentLon: Double? = null
+private var rawReceivedParameter: String? = null
+
+private fun handleIntent(intent: Intent?) {
+    // 1. Capture explicit Extras
+    val latExtra = intent?.getDoubleExtra("lat", Double.NaN) ?: Double.NaN
+    val lonExtra = intent?.getDoubleExtra("lon", Double.NaN) ?: Double.NaN
+    if (!latExtra.isNaN() && !lonExtra.isNaN()) {
+        currentLat = latExtra
+        currentLon = lonExtra
+        rawReceivedParameter = "lat=$latExtra, lon=$lonExtra"
+        return
+    }
+
+    // 2. Capture geo: URIs
+    intent?.data?.let { uri ->
+        if (uri.scheme == "geo") {
+            rawReceivedParameter = uri.toString()
+            // Parse URI here...
+            return
+        }
+    }
+
+    // 3. Capture ACTION_SEND Text
+    if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+        val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+        if (sharedText != null) {
+            rawReceivedParameter = sharedText
+            // Extract lat/lon using Regex here...
+        }
+    }
+}
+
+// When consuming the location in a UI click listener:
+btnSelect.setOnClickListener {
+    // Use currentLat and currentLon...
+
+    // Explicitly nullify to consume only once
+    currentLat = null
+    currentLon = null
+    rawReceivedParameter = null
+
+    // Return to OsmAnd without calling finish()
+    val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+    launchIntent?.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    startActivity(launchIntent)
+}
+```
 
 ## Troubleshooting & Best Practices
 
-* **Seamless Return to OsmAnd:** To return to the OsmAnd map programmatically after an action in your app, execute the launch intent: `packageManager.getLaunchIntentForPackage("net.osmand.plus")` or simply call `finish()`. Avoid doing heavy synchronous queries or using `postDelayed` handlers as they will introduce UI lag.
+
+* **Seamless Return to OsmAnd:** To return to the OsmAnd map programmatically after an action in your app, execute the launch intent: `packageManager.getLaunchIntentForPackage("net.osmand.plus")`. **Do not call `finish()`** to return to OsmAnd unless your app's task is genuinely complete; keeping your Activity alive in the background prevents Android from aggressively replaying stale `geo:` or `ACTION_SEND` intents if the user manually resumes your app later. Avoid doing heavy synchronous queries or using `postDelayed` handlers as they will introduce UI lag.
 * **Testing Iterations:** When building for your application, ensure you maintain a consistent APK signature (e.g., using a static debug keystore) across builds. This prevents seamless update issues and ensures OsmAnd remembers your plugin configuration.
 * **Location Parsers:** If your app intercepts data from OsmAnd (e.g., via `ACTION_SEND`), ensure your parsers can handle multiple text formats. OsmAnd may send data as URLs (`lat=X&lon=Y`) or as URIs (`geo:X,Y`).
 
@@ -210,7 +276,7 @@ fun isOsmAndInstalled(context: Context): Boolean {
 
 ### Prompting User for Action
 
-If the application is not installed, or if an AIDL operation fails (which often implies the "OsmAnd development" plugin is disabled), prompt the user with clear instructions and provide deep links.
+If the application is not installed, or if an AIDL operation fails (which often implies the "OsmAnd development" plugin is disabled), prompt the user with clear instructions and provide deep links. (Note: The 'OsmAnd development' plugin is not required; instead, the user must enable your specific app in OsmAnd's plugin list).
 
 ```kotlin
 fun showOsmAndActionDialog(context: Context) {

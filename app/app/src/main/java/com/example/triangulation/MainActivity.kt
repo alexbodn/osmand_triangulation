@@ -43,6 +43,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     private lateinit var tvBackAzimuth: TextView
     private lateinit var tvDeclination: TextView
     private lateinit var btnSelect: Button
+    private lateinit var btnIntersection: Button
     private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
     private lateinit var etDistance: EditText
@@ -56,6 +57,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     private var currentLat: Double? = null
     private var currentLon: Double? = null
+    private var rawReceivedParameter: String? = null
     private var isUserEditing = false
 
 
@@ -68,6 +70,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
         currentLat = null
         currentLon = null
+        rawReceivedParameter = null
 
         try {
             setContentView(R.layout.activity_main)
@@ -76,6 +79,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             tvBackAzimuth = findViewById(R.id.tvBackAzimuth)
             tvDeclination = findViewById(R.id.tvDeclination)
             btnSelect = findViewById(R.id.btnSelect)
+            btnIntersection = findViewById(R.id.btnIntersection)
             cbMagnetic = findViewById(R.id.cbMagnetic)
             cbManualAzimuth = findViewById(R.id.cbManualAzimuth)
             etDistance = findViewById(R.id.etDistance)
@@ -173,32 +177,92 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
                     val backAzimuth = (azimuthToUse + 180) % 360
                     selectedLocations.add(Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth))
+
+                    // Consume the location parameters so they are used only once
+                    currentLat = null
+                    currentLon = null
+                    rawReceivedParameter = null
+
                     saveState()
                     updatePointsList()
                     Toast.makeText(this, "Reading saved. Drawing silently on Map...", Toast.LENGTH_SHORT).show()
+
+                    // Update UI explicitly here since we just nullified the variables
+                    btnSelect.isEnabled = false
+                    cbManualAzimuth.isEnabled = false
+                    etAzimuth.isEnabled = false
+                    title = "Triangulation - No Location"
 
                     Thread {
                         drawTriangulationPointsOnMap()
 
                         runOnUiThread {
-                            if (selectedLocations.size >= 2) {
-                                val cog = calculateCenterOfGravity()
-                                if (cog != null) {
-                                    if (!osmandHelper.setMapLocation(cog.first, cog.second, 15)) Toast.makeText(this@MainActivity, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-
                             val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
                                 ?: packageManager.getLaunchIntentForPackage("net.osmand")
                             if (launchIntent != null) {
                                 launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                                 startActivity(launchIntent)
                             }
-                            finish()
+                            // Removed finish() so that returning to the app from background won't replay the intent via onCreate
+
+                            if (selectedLocations.size >= 2) {
+                                val cog = calculateCenterOfGravity()
+                                if (cog != null) {
+                                    Thread {
+                                        Thread.sleep(300)
+                                        if (!osmandHelper.setMapLocation(cog.first, cog.second, 15)) {
+                                            runOnUiThread { Toast.makeText(this@MainActivity, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() }
+                                        }
+                                    }.start()
+                                }
+                            }
                         }
                     }.start()
                 } else {
                     Toast.makeText(this, "No location selected from OsmAnd. Launch app from OsmAnd context menu or share.", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            btnIntersection.setOnClickListener {
+                var targetLat: Double? = null
+                var targetLon: Double? = null
+
+                if (selectedLocations.size >= 2) {
+                    val cog = calculateCenterOfGravity()
+                    if (cog != null) {
+                        targetLat = cog.first
+                        targetLon = cog.second
+                    } else {
+                        // Fallback to intersection of last two if cog fails
+                        val r1 = selectedLocations[selectedLocations.size - 2]
+                        val r2 = selectedLocations[selectedLocations.size - 1]
+                        val intersection = calculateIntersection(r1, r2)
+                        if (intersection != null) {
+                            targetLat = intersection.first
+                            targetLon = intersection.second
+                        }
+                    }
+                }
+
+                if (targetLat != null && targetLon != null) {
+                    val finalLat = targetLat
+                    val finalLon = targetLon
+
+                    val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                        ?: packageManager.getLaunchIntentForPackage("net.osmand")
+                    if (launchIntent != null) {
+                        launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                        startActivity(launchIntent)
+                    }
+
+                    Thread {
+                        Thread.sleep(300)
+                        if (!osmandHelper.setMapLocation(finalLat, finalLon, 15)) {
+                            runOnUiThread { Toast.makeText(this@MainActivity, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() }
+                        }
+                    }.start()
+                } else {
+                    Toast.makeText(this, "Could not calculate intersection.", Toast.LENGTH_SHORT).show()
                 }
             }
 
@@ -422,12 +486,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         if (!latExtra.isNaN() && !lonExtra.isNaN()) {
             currentLat = latExtra
             currentLon = lonExtra
+            rawReceivedParameter = "lat=$latExtra, lon=$lonExtra"
             locationParsed = true
         }
 
         if (!locationParsed) {
             intent?.data?.let { uri ->
                 if (uri.scheme == "geo") {
+                    rawReceivedParameter = uri.toString()
                     val ssp = uri.schemeSpecificPart
                     val mainPart = ssp.substringBefore('?')
                     val parts = mainPart.split(",")
@@ -447,6 +513,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         if (!locationParsed && intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
             if (sharedText != null) {
+                rawReceivedParameter = sharedText
                 var parsedLat: Double? = null
                 var parsedLon: Double? = null
 
@@ -508,6 +575,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     }
 
     private fun updatePointsList() {
+        btnIntersection.isEnabled = selectedLocations.size >= 2
         tvListHeader.text = "Saved Points (${selectedLocations.size})"
         llPointsContainer.removeAllViews()
 
@@ -522,14 +590,19 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             tvAzimuth.text = "${String.format("%.1f", reading.azimuth)}°"
 
             btnView.setOnClickListener {
-                if (!osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) Toast.makeText(this, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show()
                 val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
                     ?: packageManager.getLaunchIntentForPackage("net.osmand")
                 if (launchIntent != null) {
                     launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                     startActivity(launchIntent)
                 }
-                finish()
+
+                Thread {
+                    Thread.sleep(300)
+                    if (!osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) {
+                        runOnUiThread { Toast.makeText(this@MainActivity, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() }
+                    }
+                }.start()
             }
 
             btnDelete.setOnClickListener {
@@ -753,7 +826,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         cbManualAzimuth.isEnabled = hasLocation
         etAzimuth.isEnabled = hasLocation && cbManualAzimuth.isChecked
 
-        if (hasLocation) {
+        if (hasLocation && rawReceivedParameter != null) {
+            title = rawReceivedParameter
+        } else if (hasLocation) {
             title = "Loc: ${String.format("%.5f", currentLat)}, ${String.format("%.5f", currentLon)}"
         } else {
             title = "Triangulation - No Location"
@@ -766,7 +841,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
         currentLat = null
         currentLon = null
-        Toast.makeText(this, "onPause executed", Toast.LENGTH_SHORT).show()
+        rawReceivedParameter = null
     }
 
     override fun onDestroy() {

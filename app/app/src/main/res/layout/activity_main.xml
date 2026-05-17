@@ -142,15 +142,30 @@
             android:textSize="16sp" />
     </LinearLayout>
 
-    <Button
-        android:id="@+id/btnSelect"
+    <LinearLayout
+        android:id="@+id/llButtons"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:text="Select Reading"
+        android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/llDistance" />
+        app:layout_constraintTop_toBottomOf="@id/llDistance">
+
+        <Button
+            android:id="@+id/btnSelect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Reading" />
+
+        <Button
+            android:id="@+id/btnIntersection"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Show Intersection"
+            android:enabled="false" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tvListHeader"
@@ -162,7 +177,7 @@
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btnSelect" />
+        app:layout_constraintTop_toBottomOf="@id/llButtons" />
 
     <LinearLayout
         android:id="@+id/llTableHeader"

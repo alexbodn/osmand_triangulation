@@ -167,11 +167,11 @@ fun setMapLocation(lat: Double, lon: Double, zoom: Int = 15): Boolean {
 }
 ```
 
-After setting the location via AIDL, simply launch OsmAnd's main intent (or call `finish()` if your app was launched transparently) to return the user to the newly focused map view immediately.
+After setting the location via AIDL, launch OsmAnd's main intent to return the user to the newly focused map view immediately. **Avoid calling `finish()`** on your Activity if you plan to return to it later, as finishing it will cause Android to drop it from the backstack and recreate it from scratch (replaying the original launch intent) when the user resumes your app from the recent apps menu.
 
 ## Troubleshooting & Best Practices
 
-* **Seamless Return to OsmAnd:** To return to the OsmAnd map programmatically after an action in your app, execute the launch intent: `packageManager.getLaunchIntentForPackage("net.osmand.plus")` or simply call `finish()`. Avoid doing heavy synchronous queries or using `postDelayed` handlers as they will introduce UI lag.
+* **Seamless Return to OsmAnd:** To return to the OsmAnd map programmatically after an action in your app, execute the launch intent: `packageManager.getLaunchIntentForPackage("net.osmand.plus")`. **Do not call `finish()`** to return to OsmAnd unless your app's task is genuinely complete; keeping your Activity alive in the background prevents Android from aggressively replaying stale `geo:` or `ACTION_SEND` intents if the user manually resumes your app later. Avoid doing heavy synchronous queries or using `postDelayed` handlers as they will introduce UI lag.
 * **Testing Iterations:** When building for your application, ensure you maintain a consistent APK signature (e.g., using a static debug keystore) across builds. This prevents seamless update issues and ensures OsmAnd remembers your plugin configuration.
 * **Location Parsers:** If your app intercepts data from OsmAnd (e.g., via `ACTION_SEND`), ensure your parsers can handle multiple text formats. OsmAnd may send data as URLs (`lat=X&lon=Y`) or as URIs (`geo:X,Y`).
 
@@ -210,7 +210,7 @@ fun isOsmAndInstalled(context: Context): Boolean {
 
 ### Prompting User for Action
 
-If the application is not installed, or if an AIDL operation fails (which often implies the "OsmAnd development" plugin is disabled), prompt the user with clear instructions and provide deep links.
+If the application is not installed, or if an AIDL operation fails (which often implies the "OsmAnd development" plugin is disabled), prompt the user with clear instructions and provide deep links. (Note: The 'OsmAnd development' plugin is not required; instead, the user must enable your specific app in OsmAnd's plugin list).
 
 ```kotlin
 fun showOsmAndActionDialog(context: Context) {

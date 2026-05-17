@@ -43,6 +43,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     private lateinit var tvBackAzimuth: TextView
     private lateinit var tvDeclination: TextView
     private lateinit var btnSelect: Button
+    private lateinit var btnIntersection: Button
     private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
     private lateinit var etDistance: EditText
@@ -66,7 +67,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Toast.makeText(this, "onCreate executed", Toast.LENGTH_SHORT).show()
 
         currentLat = null
         currentLon = null
@@ -79,6 +79,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             tvBackAzimuth = findViewById(R.id.tvBackAzimuth)
             tvDeclination = findViewById(R.id.tvDeclination)
             btnSelect = findViewById(R.id.btnSelect)
+            btnIntersection = findViewById(R.id.btnIntersection)
             cbMagnetic = findViewById(R.id.cbMagnetic)
             cbManualAzimuth = findViewById(R.id.cbManualAzimuth)
             etDistance = findViewById(R.id.etDistance)
@@ -214,6 +215,42 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                     }.start()
                 } else {
                     Toast.makeText(this, "No location selected from OsmAnd. Launch app from OsmAnd context menu or share.", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            btnIntersection.setOnClickListener {
+                var targetLat: Double? = null
+                var targetLon: Double? = null
+
+                if (selectedLocations.size >= 2) {
+                    val cog = calculateCenterOfGravity()
+                    if (cog != null) {
+                        targetLat = cog.first
+                        targetLon = cog.second
+                    } else {
+                        // Fallback to intersection of last two if cog fails
+                        val r1 = selectedLocations[selectedLocations.size - 2]
+                        val r2 = selectedLocations[selectedLocations.size - 1]
+                        val intersection = calculateIntersection(r1, r2)
+                        if (intersection != null) {
+                            targetLat = intersection.first
+                            targetLon = intersection.second
+                        }
+                    }
+                }
+
+                if (targetLat != null && targetLon != null) {
+                    if (!osmandHelper.setMapLocation(targetLat, targetLon, 15)) {
+                        Toast.makeText(this, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show()
+                    }
+                    val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                        ?: packageManager.getLaunchIntentForPackage("net.osmand")
+                    if (launchIntent != null) {
+                        launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                        startActivity(launchIntent)
+                    }
+                } else {
+                    Toast.makeText(this, "Could not calculate intersection.", Toast.LENGTH_SHORT).show()
                 }
             }
 
@@ -526,6 +563,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     }
 
     private fun updatePointsList() {
+        btnIntersection.isEnabled = selectedLocations.size >= 2
         tvListHeader.text = "Saved Points (${selectedLocations.size})"
         llPointsContainer.removeAllViews()
 
@@ -787,7 +825,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         currentLat = null
         currentLon = null
         rawReceivedParameter = null
-        Toast.makeText(this, "onPause executed", Toast.LENGTH_SHORT).show()
     }
 
     override fun onDestroy() {

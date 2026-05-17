@@ -56,6 +56,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
     private var currentLat: Double? = null
     private var currentLon: Double? = null
+    private var rawReceivedParameter: String? = null
     private var isUserEditing = false
 
 
@@ -68,6 +69,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
         currentLat = null
         currentLon = null
+        rawReceivedParameter = null
 
         try {
             setContentView(R.layout.activity_main)
@@ -173,9 +175,21 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
                     val backAzimuth = (azimuthToUse + 180) % 360
                     selectedLocations.add(Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth))
+
+                    // Consume the location parameters so they are used only once
+                    currentLat = null
+                    currentLon = null
+                    rawReceivedParameter = null
+
                     saveState()
                     updatePointsList()
                     Toast.makeText(this, "Reading saved. Drawing silently on Map...", Toast.LENGTH_SHORT).show()
+
+                    // Update UI explicitly here since we just nullified the variables
+                    btnSelect.isEnabled = false
+                    cbManualAzimuth.isEnabled = false
+                    etAzimuth.isEnabled = false
+                    title = "Triangulation - No Location"
 
                     Thread {
                         drawTriangulationPointsOnMap()
@@ -422,12 +436,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         if (!latExtra.isNaN() && !lonExtra.isNaN()) {
             currentLat = latExtra
             currentLon = lonExtra
+            rawReceivedParameter = "lat=$latExtra, lon=$lonExtra"
             locationParsed = true
         }
 
         if (!locationParsed) {
             intent?.data?.let { uri ->
                 if (uri.scheme == "geo") {
+                    rawReceivedParameter = uri.toString()
                     val ssp = uri.schemeSpecificPart
                     val mainPart = ssp.substringBefore('?')
                     val parts = mainPart.split(",")
@@ -447,6 +463,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         if (!locationParsed && intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
             if (sharedText != null) {
+                rawReceivedParameter = sharedText
                 var parsedLat: Double? = null
                 var parsedLon: Double? = null
 
@@ -753,7 +770,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         cbManualAzimuth.isEnabled = hasLocation
         etAzimuth.isEnabled = hasLocation && cbManualAzimuth.isChecked
 
-        if (hasLocation) {
+        if (hasLocation && rawReceivedParameter != null) {
+            title = rawReceivedParameter
+        } else if (hasLocation) {
             title = "Loc: ${String.format("%.5f", currentLat)}, ${String.format("%.5f", currentLon)}"
         } else {
             title = "Triangulation - No Location"
@@ -766,6 +785,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
         currentLat = null
         currentLon = null
+        rawReceivedParameter = null
         Toast.makeText(this, "onPause executed", Toast.LENGTH_SHORT).show()
     }
 

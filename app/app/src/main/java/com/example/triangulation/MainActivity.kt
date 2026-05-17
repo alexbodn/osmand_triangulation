@@ -60,9 +60,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
 
 
     private lateinit var osmandHelper: OsmAndAidlHelper
+    private var isPluginDialogShowing = false
+    private var isInstallDialogShowing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        currentLat = null
+        currentLon = null
 
         try {
             setContentView(R.layout.activity_main)
@@ -111,11 +116,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
 
             osmandHelper = OsmAndAidlHelper(application, this)
-            val bound = osmandHelper.bindService()
-            if (!bound) {
-                Log.w("Triangulation", "Failed to initially bind to OsmAnd service")
-                showOsmAndPluginAlert()
-            }
+            // Binding and install checks are handled in onResume()
 
             loadState()
             handleIntent(intent)
@@ -183,14 +184,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                             if (selectedLocations.size >= 2) {
                                 val cog = calculateCenterOfGravity()
                                 if (cog != null) {
-                                    osmandHelper.setMapLocation(cog.first, cog.second, 15)
+                                    if (!osmandHelper.setMapLocation(cog.first, cog.second, 15)) Toast.makeText(this@MainActivity, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show()
                                 }
                             }
 
                             val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
                                 ?: packageManager.getLaunchIntentForPackage("net.osmand")
                             if (launchIntent != null) {
-                                launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                                 startActivity(launchIntent)
                             }
                             finish()
@@ -209,11 +210,71 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     }
 
     private fun showOsmAndPluginAlert() {
-        android.app.AlertDialog.Builder(this)
-            .setTitle("OsmAnd Configuration Required")
-            .setMessage("Failed to interact with OsmAnd.\n\nPlease ensure that:\n1. OsmAnd is installed.\n2. The 'OsmAnd development' plugin is enabled in OsmAnd settings.\n3. This Triangulation plugin is enabled in OsmAnd settings.")
-            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
-            .show()
+        runOnUiThread {
+            if (isPluginDialogShowing) return@runOnUiThread
+            isPluginDialogShowing = true
+            android.app.AlertDialog.Builder(this@MainActivity)
+                .setTitle("OsmAnd Plugin Required")
+                .setCancelable(false)
+                .setMessage("Failed to interact with OsmAnd.\n\nPlease ensure that this Triangulation app is enabled in OsmAnd's plugin settings.")
+                .setPositiveButton("OK") { dialog, _ ->
+                    isPluginDialogShowing = false
+                    dialog.dismiss()
+                }
+                .setNeutralButton("Open OsmAnd") { dialog, _ ->
+                    isPluginDialogShowing = false
+                    val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                        ?: packageManager.getLaunchIntentForPackage("net.osmand")
+                    if (launchIntent != null) {
+                        launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                        startActivity(launchIntent)
+                    }
+                    dialog.dismiss()
+                }
+                .setOnDismissListener {
+                    isPluginDialogShowing = false
+                }
+                .show()
+        }
+    }
+
+    private fun showOsmAndInstallDialog() {
+        runOnUiThread {
+            if (isInstallDialogShowing) return@runOnUiThread
+            isInstallDialogShowing = true
+            android.app.AlertDialog.Builder(this@MainActivity)
+                .setTitle("OsmAnd Required")
+                .setCancelable(false)
+                .setMessage("This app requires OsmAnd to function correctly.\n\nPlease install either OsmAnd or OsmAnd+.")
+                .setPositiveButton("Install OsmAnd") { dialog, _ ->
+                    isInstallDialogShowing = false
+                    try {
+                        val playStoreIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=net.osmand"))
+                        playStoreIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(playStoreIntent)
+                    } catch (e: Exception) {
+                        val webIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=net.osmand"))
+                        startActivity(webIntent)
+                    }
+                    dialog.dismiss()
+                }
+                .setNegativeButton("Install OsmAnd+") { dialog, _ ->
+                    isInstallDialogShowing = false
+                    try {
+                        val playStoreIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=net.osmand.plus"))
+                        playStoreIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(playStoreIntent)
+                    } catch (e: Exception) {
+                        val webIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=net.osmand.plus"))
+                        startActivity(webIntent)
+                    }
+                    dialog.dismiss()
+                }
+                .setOnDismissListener {
+                    isInstallDialogShowing = false
+                }
+                .show()
+        }
     }
 
     private fun calculateCurrentDeclination(): Float {
@@ -244,7 +305,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         runOnUiThread {
             Toast.makeText(this, "Connected to OsmAnd API", Toast.LENGTH_SHORT).show()
         }
-        osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")
+        if (!osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")) Toast.makeText(this, "Failed to add context menu to OsmAnd", Toast.LENGTH_SHORT).show()
     }
 
     override fun onOsmAndServiceDisconnected() {
@@ -356,30 +417,34 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         val latExtra = intent?.getDoubleExtra("lat", Double.NaN) ?: Double.NaN
         val lonExtra = intent?.getDoubleExtra("lon", Double.NaN) ?: Double.NaN
 
+        var locationParsed = false
+
         if (!latExtra.isNaN() && !lonExtra.isNaN()) {
             currentLat = latExtra
             currentLon = lonExtra
-            return
+            locationParsed = true
         }
 
-        intent?.data?.let { uri ->
-            if (uri.scheme == "geo") {
-                val ssp = uri.schemeSpecificPart
-                val mainPart = ssp.substringBefore('?')
-                val parts = mainPart.split(",")
-                if (parts.size >= 2) {
-                    try {
-                        currentLat = parts[0].toDouble()
-                        currentLon = parts[1].toDouble()
-                        return
-                    } catch (e: NumberFormatException) {
-                        e.printStackTrace()
+        if (!locationParsed) {
+            intent?.data?.let { uri ->
+                if (uri.scheme == "geo") {
+                    val ssp = uri.schemeSpecificPart
+                    val mainPart = ssp.substringBefore('?')
+                    val parts = mainPart.split(",")
+                    if (parts.size >= 2) {
+                        try {
+                            currentLat = parts[0].toDouble()
+                            currentLon = parts[1].toDouble()
+                            locationParsed = true
+                        } catch (e: NumberFormatException) {
+                            e.printStackTrace()
+                        }
                     }
                 }
             }
         }
 
-        if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+        if (!locationParsed && intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
             if (sharedText != null) {
                 var parsedLat: Double? = null
@@ -426,11 +491,19 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 if (parsedLat != null && parsedLon != null) {
                     currentLat = parsedLat
                     currentLon = parsedLon
-                    Toast.makeText(this, "Received coordinates: $currentLat, $currentLon", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "Could not parse coordinates from: $sharedText", Toast.LENGTH_LONG).show()
+                    locationParsed = true
                 }
             }
+        }
+
+        if (locationParsed) {
+            // Clear the intent so that resuming the app later doesn't re-process the old location
+            intent?.removeExtra("lat")
+            intent?.removeExtra("lon")
+            intent?.removeExtra(Intent.EXTRA_TEXT)
+            intent?.data = null
+            intent?.action = null
+            setIntent(Intent())
         }
     }
 
@@ -449,11 +522,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             tvAzimuth.text = "${String.format("%.1f", reading.azimuth)}°"
 
             btnView.setOnClickListener {
-                osmandHelper.setMapLocation(reading.lat, reading.lon, 15)
+                if (!osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) Toast.makeText(this, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show()
                 val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
                     ?: packageManager.getLaunchIntentForPackage("net.osmand")
                 if (launchIntent != null) {
-                    launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                     startActivity(launchIntent)
                 }
                 finish()
@@ -576,11 +649,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
              intersection = calculateIntersection(r1, r2)
         }
 
-        // Add waypoints (only the last reading as requested, but keep all tracks for intersection)
-        if (selectedLocations.isNotEmpty()) {
-            val lastReading = selectedLocations.last()
-            val formattedDirectAzimuth = String.format("%.1f", lastReading.azimuth)
-            gpxStr.append("  <wpt lat=\"${lastReading.lat}\" lon=\"${lastReading.lon}\">\n")
+        // Add waypoints for all readings so they all show the icon
+        for (reading in selectedLocations) {
+            val formattedDirectAzimuth = String.format("%.1f", reading.azimuth)
+            gpxStr.append("  <wpt lat=\"${reading.lat}\" lon=\"${reading.lon}\">\n")
             gpxStr.append("    <name>${formattedDirectAzimuth}°</name>\n")
             gpxStr.append("    <type>reading</type>\n")
             gpxStr.append("  </wpt>\n")
@@ -655,7 +727,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         val aidlSuccess = osmandHelper.importGpxFromData(gpxStr.toString(), "triangulation.gpx", "red", true)
 
         if (!aidlSuccess) {
-            Toast.makeText(this, "Failed to send GPX to OsmAnd via AIDL", Toast.LENGTH_SHORT).show()
+            runOnUiThread { Toast.makeText(this@MainActivity, "Failed to send GPX to OsmAnd via AIDL", Toast.LENGTH_SHORT).show() }
         }
     }
 
@@ -666,14 +738,35 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
         }
 
         // Ensure ties with OsmAnd are healthy when we regain focus
-        if (!osmandHelper.bindService()) {
-            Toast.makeText(this, "Attempting to reconnect to OsmAnd...", Toast.LENGTH_SHORT).show()
+        val bound = osmandHelper.bindService()
+
+        // Check if OsmAnd is installed first
+        if (!OsmAndAidlHelper.isOsmAndInstalled(this)) {
+            showOsmAndInstallDialog()
+        } else if (!bound) {
+            showOsmAndPluginAlert()
+        }
+
+        // Disable editing if we don't have a location
+        val hasLocation = currentLat != null && currentLon != null
+        btnSelect.isEnabled = hasLocation
+        cbManualAzimuth.isEnabled = hasLocation
+        etAzimuth.isEnabled = hasLocation && cbManualAzimuth.isChecked
+
+        if (hasLocation) {
+            title = "Loc: ${String.format("%.5f", currentLat)}, ${String.format("%.5f", currentLon)}"
+        } else {
+            title = "Triangulation - No Location"
         }
     }
 
     override fun onPause() {
         super.onPause()
         sensorManager.unregisterListener(this)
+
+        currentLat = null
+        currentLon = null
+        Toast.makeText(this, "onPause executed", Toast.LENGTH_SHORT).show()
     }
 
     override fun onDestroy() {

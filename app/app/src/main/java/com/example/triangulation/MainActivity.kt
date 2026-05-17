@@ -209,7 +209,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                                 launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                                 startActivity(launchIntent)
                             }
-                            finish()
+                            // Removed finish() so that returning to the app from background won't replay the intent via onCreate
                         }
                     }.start()
                 } else {
@@ -547,7 +547,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                     launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                     startActivity(launchIntent)
                 }
-                finish()
+                // Removed finish()
             }
 
             btnDelete.setOnClickListener {

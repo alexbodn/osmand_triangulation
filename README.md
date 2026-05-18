@@ -1,7 +1,5 @@
 # Triangulation App for OsmAnd
 
-## Triangulation is a method to find our location by using two objects that we know their location
-
 [![Android CI](https://github.com/AlexBodn/Triangulation/actions/workflows/android.yml/badge.svg)](https://github.com/AlexBodn/Triangulation/actions/workflows/android.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -17,14 +15,19 @@
 
 ## Screenshots
 
-*(Add screenshots of the app UI and the resulting OsmAnd map overlay here)*
+*To embed an image in this README, you can either:*
+1. *Upload an image file (e.g., `screenshot.png`) into a directory in your repository like `images/` and link to it like this:*
+   `![App Screenshot](images/screenshot.png)`
+2. *Or simply drag and drop the image file directly into the GitHub web editor while editing this file, and GitHub will automatically generate the embed link for you!*
+
+<!-- Remove the text above and place your image embed link here! -->
 
 ## Prerequisites
 
 To use this application, you must have OsmAnd installed on your device.
 
 1. Install [OsmAnd](https://play.google.com/store/apps/details?id=net.osmand) or [OsmAnd+](https://play.google.com/store/apps/details?id=net.osmand.plus) from the Google Play Store.
-2. Ensure you enable the Triangulation app within OsmAnd's **Plugin Menu** so the two applications can communicate securely.
+2. Ensure you enable the Triangulation app within OsmAnd's **Plugin Menu** so the two applications can communicate securely. (Note: The "OsmAnd development" plugin is not required).
 
 ## Installation
 
@@ -38,7 +41,7 @@ You do not need to build the app from source to use it.
 
 If you wish to modify the application or build it yourself:
 
-1. Clone this repository:
+1. Clone the repository:
    ```bash
    git clone https://github.com/AlexBodn/Triangulation.git
    ```

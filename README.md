@@ -1,6 +1,7 @@
 # Triangulation App for OsmAnd
 
 [![Android CI](https://github.com/AlexBodn/Triangulation/actions/workflows/android.yml/badge.svg)](https://github.com/AlexBodn/Triangulation/actions/workflows/android.yml)
+[![Android CI](https://github.com/alexbodn/osmand_triangulation/actions/workflows/android.yml/badge.svg)](https://github.com/alexbodn/osmand_triangulation/actions/workflows/android.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Triangulation** is a lightweight Android utility designed to integrate seamlessly with the [OsmAnd](https://osmand.net/) map application. It allows users to perform precise geolocation triangulation directly from the field and instantly visualizes the resulting intersection points and lines as GPX overlays within the OsmAnd interface.

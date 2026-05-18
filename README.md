@@ -1,6 +1,5 @@
 # Triangulation App for OsmAnd
 
-[![Android CI](https://github.com/AlexBodn/Triangulation/actions/workflows/android.yml/badge.svg)](https://github.com/AlexBodn/Triangulation/actions/workflows/android.yml)
 [![Android CI](https://github.com/alexbodn/osmand_triangulation/actions/workflows/android.yml/badge.svg)](https://github.com/alexbodn/osmand_triangulation/actions/workflows/android.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -16,12 +15,11 @@
 
 ## Screenshots
 
-*To embed an image in this README, you can either:*
-1. *Upload an image file (e.g., `screenshot.png`) into a directory in your repository like `images/` and link to it like this:*
-   `![App Screenshot](images/screenshot.png)`
-2. *Or simply drag and drop the image file directly into the GitHub web editor while editing this file, and GitHub will automatically generate the embed link for you!*
-
-<!-- Remove the text above and place your image embed link here! -->
+*screenshot osmand*
+   `![App Screenshot](images/screenshot-osmand.png)`
+*screenshot triangulation*
+   `![App Screenshot](images/screenshot-triangulation.png)`
+   
 
 ## Prerequisites
 

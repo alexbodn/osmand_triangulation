@@ -38,9 +38,9 @@ You do not need to build the app from source to use it.
 
 If you wish to modify the application or build it yourself:
 
-1. Clone the repository:
+1. Clone this repository:
    ```bash
-   git clone https://github.com/AlexBodnaru/Triangulation.git
+   git clone https://github.com/AlexBodn/Triangulation.git
    ```
 2. Navigate to the project directory:
    ```bash

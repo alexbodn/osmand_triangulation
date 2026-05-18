@@ -14,12 +14,8 @@
 * **Privacy Focused:** Operates without tracking your location in the background. It only processes explicit location data shared by the user.
 
 ## Screenshots
-
-*screenshot osmand*
-   `![App Screenshot](screenshot-osmand.png)`
-*screenshot triangulation*
-   `![App Screenshot](screenshot-triangulation.png)`
-   
+![OsmAnd view](./screenshot-osmand.png)
+![Triangulation view](./screenshot-triangulation.png)
 
 ## Prerequisites
 

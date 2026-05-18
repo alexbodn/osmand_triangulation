@@ -16,9 +16,9 @@
 ## Screenshots
 
 *screenshot osmand*
-   `![App Screenshot](images/screenshot-osmand.png)`
+   `![App Screenshot](screenshot-osmand.png)`
 *screenshot triangulation*
-   `![App Screenshot](images/screenshot-triangulation.png)`
+   `![App Screenshot](screenshot-triangulation.png)`
    
 
 ## Prerequisites

@@ -39,7 +39,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
     private var rotationVectorSensor: Sensor? = null
 
     private lateinit var ivArrow: ImageView
-    private lateinit var etColdBootDelay: EditText
     private lateinit var etAzimuth: EditText
     private lateinit var tvBackAzimuth: TextView
     private lateinit var tvDeclination: TextView
@@ -84,7 +83,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
             cbMagnetic = findViewById(R.id.cbMagnetic)
             cbManualAzimuth = findViewById(R.id.cbManualAzimuth)
             etDistance = findViewById(R.id.etDistance)
-            etColdBootDelay = findViewById(R.id.etColdBootDelay)
             tvListHeader = findViewById(R.id.tvListHeader)
             llPointsContainer = findViewById(R.id.llPointsContainer)
 
@@ -201,17 +199,25 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                         runOnUiThread {
                             val launchIntent = packageManager.getLaunchIntentForPackage("net.osmand.plus")
                                 ?: packageManager.getLaunchIntentForPackage("net.osmand")
+
+                            val cog = calculateCenterOfGravity()
                             if (launchIntent != null) {
                                 launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                                if (selectedLocations.size >= 2 && cog != null) {
+                                    launchIntent.putExtra("lat", cog.first)
+                                    launchIntent.putExtra("lon", cog.second)
+                                }
                                 startActivity(launchIntent)
                             }
                             // Removed finish() so that returning to the app from background won't replay the intent via onCreate
 
-                            if (selectedLocations.size >= 2) {
-                                val cog = calculateCenterOfGravity()
-                                if (cog != null) {
-                                    executeMapPan(cog.first, cog.second)
-                                }
+                            if (selectedLocations.size >= 2 && cog != null) {
+                                Thread {
+                                    Thread.sleep(300)
+                                    if (!osmandHelper.setMapLocation(cog.first, cog.second, 15)) {
+                                        runOnUiThread { Toast.makeText(this@MainActivity, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() }
+                                    }
+                                }.start()
                             }
                         }
                     }.start()
@@ -249,10 +255,17 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                         ?: packageManager.getLaunchIntentForPackage("net.osmand")
                     if (launchIntent != null) {
                         launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                        launchIntent.putExtra("lat", finalLat)
+                        launchIntent.putExtra("lon", finalLon)
                         startActivity(launchIntent)
                     }
 
-                    executeMapPan(finalLat, finalLon)
+                    Thread {
+                        Thread.sleep(300)
+                        if (!osmandHelper.setMapLocation(finalLat, finalLon, 15)) {
+                            runOnUiThread { Toast.makeText(this@MainActivity, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() }
+                        }
+                    }.start()
                 } else {
                     Toast.makeText(this, "Could not calculate intersection.", Toast.LENGTH_SHORT).show()
                 }
@@ -292,30 +305,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                 }
                 .show()
         }
-    }
-
-    private fun executeMapPan(lat: Double, lon: Double) {
-        var coldBootDelay = 3000L
-        try {
-            coldBootDelay = etColdBootDelay.text.toString().toLong()
-        } catch (e: Exception) {}
-
-        Thread {
-            // First snappy pan for hot-boot scenarios
-            Thread.sleep(300)
-            if (!osmandHelper.setMapLocation(lat, lon, 15)) {
-                runOnUiThread { Toast.makeText(this@MainActivity, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() }
-            }
-
-            // Secondary safety pan for cold-boot scenarios to override OsmAnd's GPS auto-center.
-            // Since we cannot reliably detect if OsmAnd is already running on modern Android versions,
-            // we always fire this safety net. If already running, it simply re-centers on the same spot.
-            val secondaryDelay = coldBootDelay - 300
-            if (secondaryDelay > 0) {
-                Thread.sleep(secondaryDelay)
-                osmandHelper.setMapLocation(lat, lon, 15)
-            }
-        }.start()
     }
 
     private fun showOsmAndInstallDialog() {
@@ -610,10 +599,17 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OsmAndAidlHelper.
                     ?: packageManager.getLaunchIntentForPackage("net.osmand")
                 if (launchIntent != null) {
                     launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                    launchIntent.putExtra("lat", reading.lat)
+                    launchIntent.putExtra("lon", reading.lon)
                     startActivity(launchIntent)
                 }
 
-                executeMapPan(reading.lat, reading.lon)
+                Thread {
+                    Thread.sleep(300)
+                    if (!osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) {
+                        runOnUiThread { Toast.makeText(this@MainActivity, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() }
+                    }
+                }.start()
             }
 
             btnDelete.setOnClickListener {

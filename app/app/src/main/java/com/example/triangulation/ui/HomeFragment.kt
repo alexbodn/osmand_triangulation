@@ -56,7 +56,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private var baseAzimuth = 0f // The raw or user-inputted azimuth BEFORE declination
     private var selectedLocations = mutableListOf<Reading>()
 
-    data class Reading(val lat: Double, val lon: Double, val azimuth: Float, val backAzimuth: Float)
+    data class Reading(val lat: Double, val lon: Double, val azimuth: Float, val backAzimuth: Float, val tempDesc: String? = null)
 
     private var currentLat: Double? = null
     private var currentLon: Double? = null
@@ -185,7 +185,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     }
 
                     val backAzimuth = (azimuthToUse + 180) % 360
-                    selectedLocations.add(Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth))
+                    selectedLocations.add(Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth, rawReceivedParameter?.let { extractDescription(it) }))
 
                     // Consume the location parameters so they are used only once
                     currentLat = null
@@ -544,15 +544,37 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
         }
 
+
         if (!locationParsed && intent?.action == Intent.ACTION_SEND && intent?.type == "text/plain") {
             val sharedText = intent?.getStringExtra(Intent.EXTRA_TEXT)
             if (sharedText != null) {
+                if (sharedText.contains("bbox=")) {
+                    try {
+                        val bboxStr = sharedText.substringAfter("bbox=").substringBefore("&").substringBefore("\n").substringBefore(" ")
+                        val parts = bboxStr.split(",")
+                        if (parts.size == 4) {
+                            val bbox = doubleArrayOf(parts[0].toDouble(), parts[1].toDouble(), parts[2].toDouble(), parts[3].toDouble())
+                            // Switch to locations tab
+                            (activity as? com.example.triangulation.MainActivity)?.let { mainActivity ->
+                                val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
+                                viewPager?.currentItem = 1
+                            }
 
-                if (sharedText.contains("\"FeatureCollection\"") || sharedText.contains("\"Feature\"")) {
+                            val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", android.content.Context.MODE_PRIVATE)
+                            sharedPrefs.edit().putString("bbox_filter", bbox.joinToString(",")).apply()
 
+                            val bboxIntent = Intent("com.example.triangulation.BBOX_FILTER")
+                            requireContext().sendBroadcast(bboxIntent)
+                            locationParsed = true
+                        }
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
+
+                if (!locationParsed && (sharedText.contains("\"FeatureCollection\"") || sharedText.contains("\"Feature\""))) {
                     handleGeoJson(sharedText)
                     locationParsed = true
-                } else {
+                } else if (!locationParsed) {
+
                     rawReceivedParameter = sharedText
                     var parsedLat: Double? = null
                     var parsedLon: Double? = null
@@ -604,8 +626,16 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
         }
 
+
         if (locationParsed) {
+            // Switch to Home tab
+            (activity as? com.example.triangulation.MainActivity)?.let { mainActivity ->
+                val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
+                viewPager?.currentItem = 0
+            }
+
             intent?.removeExtra("lat")
+
             intent?.removeExtra("lon")
             intent?.removeExtra(Intent.EXTRA_TEXT)
             intent?.data = null
@@ -614,7 +644,20 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         }
     }
 
-    private fun handleGeoJson(jsonStr: String) {
+
+    private fun extractDescription(rawText: String): String? {
+        // e.g. "האחים אוסטשינסקי (ראשונים) 19א, ראשון לציון\nLocation: geo:..."
+        if (rawText.contains("Location:")) {
+            val lines = rawText.split("\n")
+            if (lines.isNotEmpty() && lines[0].isNotBlank() && !lines[0].startsWith("Location:")) {
+                return lines[0].trim()
+            }
+        }
+        return null
+    }
+
+    private fun handleGeoJson
+(jsonStr: String) {
         try {
             val root = JSONObject(jsonStr)
             val features = if (root.has("features")) root.getJSONArray("features") else JSONArray().apply { put(root) }
@@ -699,7 +742,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             btnSave.setOnClickListener {
-                showSaveDialog(reading.lat, reading.lon)
+                showSaveDialog(reading.lat, reading.lon, reading.tempDesc)
             }
 
             btnView.setOnClickListener {
@@ -752,12 +795,13 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         }
     }
 
-    private fun showSaveDialog(lat: Double, lon: Double) {
+    private fun showSaveDialog(lat: Double, lon: Double, initialDesc: String?) {
         val builder = android.app.AlertDialog.Builder(requireContext())
         builder.setTitle("Save Location to Library")
 
         val view = layoutInflater.inflate(R.layout.dialog_save_location, null)
         val etDesc = view.findViewById<EditText>(R.id.etDialogDesc)
+        if (initialDesc != null) etDesc.setText(initialDesc)
         val etImgUrl = view.findViewById<EditText>(R.id.etDialogImgUrl)
         val btnChooseFile = view.findViewById<Button>(R.id.btnChooseFile)
 

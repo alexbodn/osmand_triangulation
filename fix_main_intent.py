@@ -1,4 +1,9 @@
+import re
 
+with open('app/app/src/main/java/com/example/triangulation/MainActivity.kt', 'r') as f:
+    content = f.read()
+
+new_main = """
 package com.example.triangulation
 
 import android.content.Intent
@@ -43,3 +48,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
+"""
+
+with open('app/app/src/main/java/com/example/triangulation/MainActivity.kt', 'w') as f:
+    f.write(new_main)

@@ -547,7 +547,9 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         if (!locationParsed && intent?.action == Intent.ACTION_SEND && intent?.type == "text/plain") {
             val sharedText = intent?.getStringExtra(Intent.EXTRA_TEXT)
             if (sharedText != null) {
-                if (sharedText.contains("\"type\": \"FeatureCollection\"") || sharedText.contains("\"type\": \"Feature\"")) {
+
+                if (sharedText.contains("\"FeatureCollection\"") || sharedText.contains("\"Feature\"")) {
+
                     handleGeoJson(sharedText)
                     locationParsed = true
                 } else {

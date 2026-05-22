@@ -119,7 +119,7 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
         try {
             requireContext().unregisterReceiver(updateReceiver)
         } catch (e: Exception) {}
-        osmandHelper.unbindService()
+
 
     }
 
@@ -160,4 +160,9 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
     override fun onOsmAndServiceConnected() {}
     override fun onOsmAndServiceDisconnected() {}
     override fun onContextMenuButtonClicked(buttonId: Int, pointId: String?, layerId: String?) {}
+
+    override fun onDestroy() {
+        super.onDestroy()
+        osmandHelper.unbindService()
+    }
 }

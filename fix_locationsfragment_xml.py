@@ -1,19 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+import re
 
-    <TextView
-        android:id="@+id/tvLocationsHeader"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="Location Library"
-        android:textSize="20sp"
-        android:textStyle="bold" />
+with open('app/app/src/main/res/layout/fragment_locations.xml', 'r') as f:
+    content = f.read()
 
-
+new_buttons = """
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvLocations"
         android:layout_width="match_parent"
@@ -46,3 +36,17 @@
     </LinearLayout>
 
 </LinearLayout>
+"""
+
+content = content.replace("""    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvLocations"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="16dp" />
+
+</LinearLayout>""", new_buttons)
+
+with open('app/app/src/main/res/layout/fragment_locations.xml', 'w') as f:
+    f.write(content)

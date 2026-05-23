@@ -664,10 +664,18 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         return null
     }
 
-    private fun handleGeoJson
-(jsonStr: String) {
+    private fun handleGeoJson(jsonStr: String) {
         try {
-            val root = JSONObject(jsonStr)
+            // Extract the actual JSON from the string, in case it contains mixed text (like URLs or labels)
+            val startIndex = jsonStr.indexOf("{")
+            val endIndex = jsonStr.lastIndexOf("}")
+
+            if (startIndex == -1 || endIndex == -1 || startIndex > endIndex) {
+                throw Exception("No JSON object found in text")
+            }
+
+            val pureJsonStr = jsonStr.substring(startIndex, endIndex + 1)
+            val root = JSONObject(pureJsonStr)
             val features = if (root.has("features")) root.getJSONArray("features") else JSONArray().apply { put(root) }
             val parsedLocs = mutableListOf<com.example.triangulation.data.LibraryLocation>()
 

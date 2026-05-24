@@ -89,7 +89,7 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                 }.start()
             },
             onDeleteClick = { loc ->
-                libraryManager.removeLocation(loc.lat, loc.lon)
+                libraryManager.removeLocation(loc.lat, loc.lon, loc.desc)
                 loadData()
                 // Update Home tab active list if needed? It pulls automatically on next resume/refresh if we use shared prefs or DB, but here they are disjoint.
                 // The requirements say: "Deleting an active location from the Home tab should remove it from the active list and map, but NOT delete it from the library."

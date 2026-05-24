@@ -51,10 +51,10 @@ class LocationLibraryManager(private val context: Context) {
         }
     }
 
-    fun addLocation(location: LibraryLocation) {
+fun addLocation(location: LibraryLocation) {
         val current = getLocations().toMutableList()
-        // Replace if exists with same lat/lon (with minor tolerance)
-        val index = current.indexOfFirst { Math.abs(it.lat - location.lat) < 0.00001 && Math.abs(it.lon - location.lon) < 0.00001 }
+        // Replace if exists with exact same lat/lon AND desc
+        val index = current.indexOfFirst { it.lat == location.lat && it.lon == location.lon && it.desc == location.desc }
         if (index != -1) {
             current[index] = location
         } else {
@@ -63,17 +63,28 @@ class LocationLibraryManager(private val context: Context) {
         saveLocations(current)
     }
 
-    fun removeLocation(lat: Double, lon: Double) {
+    fun removeLocation(lat: Double, lon: Double, desc: String? = null) {
         val current = getLocations().toMutableList()
-        val index = current.indexOfFirst { Math.abs(it.lat - lat) < 0.00001 && Math.abs(it.lon - lon) < 0.00001 }
+        val index = if (desc != null) {
+            current.indexOfFirst { it.lat == lat && it.lon == lon && it.desc == desc }
+        } else {
+            current.indexOfFirst { it.lat == lat && it.lon == lon }
+        }
+
         if (index != -1) {
             current.removeAt(index)
             saveLocations(current)
         }
     }
 
-    fun isLocationInLibrary(lat: Double, lon: Double): LibraryLocation? {
+fun isLocationInLibrary(lat: Double, lon: Double, desc: String? = null): LibraryLocation? {
         val current = getLocations()
-        return current.firstOrNull { Math.abs(it.lat - lat) < 0.00001 && Math.abs(it.lon - lon) < 0.00001 }
+        return if (desc != null) {
+            current.firstOrNull { it.lat == lat && it.lon == lon && it.desc == desc }
+        } else {
+            // When querying just by coordinates (e.g. from Home tab active locations),
+            // return the first match at that exact spot if one exists.
+            current.firstOrNull { it.lat == lat && it.lon == lon }
+        }
     }
 }

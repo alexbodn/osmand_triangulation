@@ -707,7 +707,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     .setPositiveButton("Import") { _, _ ->
                         var importedCount = 0
                         for (loc in parsedLocs) {
-                            if (libraryManager.isLocationInLibrary(loc.lat, loc.lon) == null) {
+                            if (libraryManager.isLocationInLibrary(loc.lat, loc.lon, loc.desc) == null) {
                                 libraryManager.addLocation(loc)
                                 importedCount++
                             }

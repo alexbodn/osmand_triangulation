@@ -46,6 +46,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private lateinit var tvBackAzimuth: TextView
     private lateinit var tvDeclination: TextView
     private lateinit var flSelectArea: android.widget.FrameLayout
+    private lateinit var tvSelectReadingText: TextView
     private lateinit var btnIntersection: Button
     private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
@@ -87,6 +88,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             tvBackAzimuth = view.findViewById(R.id.tvBackAzimuth)
             tvDeclination = view.findViewById(R.id.tvDeclination)
             flSelectArea = view.findViewById(R.id.flSelectArea)
+            tvSelectReadingText = view.findViewById(R.id.tvSelectReadingText)
             btnIntersection = view.findViewById(R.id.btnIntersection)
             cbMagnetic = view.findViewById(R.id.cbMagnetic)
             cbManualAzimuth = view.findViewById(R.id.cbManualAzimuth)
@@ -199,6 +201,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     // Update UI explicitly here since we just nullified the variables
                     flSelectArea.isEnabled = false
                     flSelectArea.alpha = 0.5f
+                    tvSelectReadingText.visibility = View.INVISIBLE
                     cbManualAzimuth.isEnabled = false
                     etAzimuth.isEnabled = false
                     requireActivity().title = "Triangulation - No Location"
@@ -1063,6 +1066,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         val hasLocation = currentLat != null && currentLon != null
         flSelectArea.isEnabled = hasLocation
         flSelectArea.alpha = if (hasLocation) 1.0f else 0.5f
+        tvSelectReadingText.visibility = if (hasLocation) View.VISIBLE else View.INVISIBLE
         cbManualAzimuth.isEnabled = hasLocation
         etAzimuth.isEnabled = hasLocation && cbManualAzimuth.isChecked
 

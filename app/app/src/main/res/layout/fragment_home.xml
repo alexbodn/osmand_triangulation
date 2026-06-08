@@ -215,8 +215,8 @@
 
         <FrameLayout
             android:id="@+id/flSelectArea"
-            android:layout_width="240dp"
-            android:layout_height="240dp"
+            android:layout_width="280dp"
+            android:layout_height="280dp"
             android:layout_marginTop="8dp"
             android:clickable="true"
             android:focusable="true">
@@ -229,6 +229,7 @@
                 app:tint="@android:color/holo_red_dark" />
 
             <TextView
+                android:id="@+id/tvSelectReadingText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"

@@ -72,33 +72,30 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                 }
             },
             onShowClick = { loc ->
-                val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                val aidlSuccess = osmandHelper.setMapLocation(loc.lat, loc.lon, 15)
+                var launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                     ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
+
                 if (launchIntent != null) {
                     launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    startActivity(launchIntent)
-                }
-
-                Thread {
-                    Thread.sleep(300)
-                    if (!osmandHelper.setMapLocation(loc.lat, loc.lon, 15)) {
-                        var success = false
-                        for (i in 1..20) {
-                            Thread.sleep(500)
-                            if (osmandHelper.setMapLocation(loc.lat, loc.lon, 15)) {
-                                success = true
-                                break
-                            }
-                        }
-                        if (!success) {
-                            activity?.runOnUiThread { context?.let { Toast.makeText(it, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() } }
-                        } else {
-                            activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show() } }
-                        }
+                    val finalIntent = if (aidlSuccess) {
+                        Toast.makeText(requireContext(), "osmand hot @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show()
+                        launchIntent
                     } else {
-                        activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show() } }
+                        val uri = android.net.Uri.parse("https://osmand.net/map/#15/${loc.lat}/${loc.lon}")
+                        val newIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+                        newIntent.setPackage("net.osmand.plus")
+                        newIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        Toast.makeText(requireContext(), "osmand cold @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show()
+                        newIntent
                     }
-                }.start()
+                    try {
+                        startActivity(finalIntent)
+                    } catch (e: Exception) {
+                        finalIntent.setPackage("net.osmand")
+                        startActivity(finalIntent)
+                    }
+                }
             },
             onDeleteClick = { loc ->
                 libraryManager.removeLocation(loc.lat, loc.lon, loc.desc)

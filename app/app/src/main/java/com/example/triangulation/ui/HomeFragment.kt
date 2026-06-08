@@ -45,7 +45,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private lateinit var etAzimuth: EditText
     private lateinit var tvBackAzimuth: TextView
     private lateinit var tvDeclination: TextView
-    private lateinit var btnSelect: Button
+    private lateinit var flSelectArea: android.widget.FrameLayout
+    private lateinit var tvSelectReadingText: TextView
     private lateinit var btnIntersection: Button
     private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
@@ -86,7 +87,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             etAzimuth = view.findViewById(R.id.etAzimuth)
             tvBackAzimuth = view.findViewById(R.id.tvBackAzimuth)
             tvDeclination = view.findViewById(R.id.tvDeclination)
-            btnSelect = view.findViewById(R.id.btnSelect)
+            flSelectArea = view.findViewById(R.id.flSelectArea)
+            tvSelectReadingText = view.findViewById(R.id.tvSelectReadingText)
             btnIntersection = view.findViewById(R.id.btnIntersection)
             cbMagnetic = view.findViewById(R.id.cbMagnetic)
             cbManualAzimuth = view.findViewById(R.id.cbManualAzimuth)
@@ -174,7 +176,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 updateBackAzimuthDisplay(true)
             }
 
-            btnSelect.setOnClickListener {
+            flSelectArea.setOnClickListener {
                 if (currentLat != null && currentLon != null) {
                     var azimuthToUse = baseAzimuth
 
@@ -197,7 +199,9 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     Toast.makeText(requireContext(), "Reading saved. Drawing silently on Map...", Toast.LENGTH_SHORT).show()
 
                     // Update UI explicitly here since we just nullified the variables
-                    btnSelect.isEnabled = false
+                    flSelectArea.isEnabled = false
+                    flSelectArea.alpha = 0.5f
+                    tvSelectReadingText.visibility = View.INVISIBLE
                     cbManualAzimuth.isEnabled = false
                     etAzimuth.isEnabled = false
                     requireActivity().title = "Triangulation - No Location"
@@ -351,16 +355,34 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     }
 
     private fun calculateCurrentDeclination(): Float {
-        var declinationTargetLat = currentLat ?: 0.0
-        var declinationTargetLon = currentLon ?: 0.0
+        var declinationTargetLat = 0.0
+        var declinationTargetLon = 0.0
 
-        if (selectedLocations.isNotEmpty()) {
-            val fakeCurrentReading = Reading(declinationTargetLat, declinationTargetLon, baseAzimuth, (baseAzimuth + 180f) % 360f)
-            val r1 = selectedLocations.last()
-            val intersection = calculateIntersection(r1, fakeCurrentReading)
-            if (intersection != null) {
-                declinationTargetLat = intersection.first
-                declinationTargetLon = intersection.second
+        if (currentLat != null && currentLon != null) {
+            declinationTargetLat = currentLat!!
+            declinationTargetLon = currentLon!!
+        } else if (selectedLocations.size >= 2) {
+            val cog = calculateCenterOfGravity()
+            if (cog != null) {
+                declinationTargetLat = cog.first
+                declinationTargetLon = cog.second
+            } else {
+                val r1 = selectedLocations[selectedLocations.size - 2]
+                val r2 = selectedLocations[selectedLocations.size - 1]
+                val intersection = calculateIntersection(r1, r2)
+                if (intersection != null) {
+                    declinationTargetLat = intersection.first
+                    declinationTargetLon = intersection.second
+                }
+            }
+        } else if (selectedLocations.size == 1) {
+            declinationTargetLat = selectedLocations.first().lat
+            declinationTargetLon = selectedLocations.first().lon
+        } else {
+            val libraryLocations = libraryManager.getLocations()
+            if (libraryLocations.isNotEmpty()) {
+                declinationTargetLat = libraryLocations.first().lat
+                declinationTargetLon = libraryLocations.first().lon
             }
         }
 
@@ -461,16 +483,13 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private fun updateBackAzimuthDisplay(forceUpdateEditText: Boolean = false) {
         var azimuthToDisplay = baseAzimuth
 
-        if (cbMagnetic.isChecked) {
-            val declination = calculateCurrentDeclination()
-            tvDeclination.visibility = View.VISIBLE
-            tvDeclination.text = "Declination applied: ${String.format("%.1f", declination)}°"
+        val declination = calculateCurrentDeclination()
+        tvDeclination.text = "Magnetic declination: ${String.format("%.1f", declination)}°"
 
+        if (cbMagnetic.isChecked) {
             azimuthToDisplay += declination
             if (azimuthToDisplay >= 360f) azimuthToDisplay -= 360f
             if (azimuthToDisplay < 0f) azimuthToDisplay += 360f
-        } else {
-            tvDeclination.visibility = View.GONE
         }
 
         if (!isUserEditing || forceUpdateEditText) {
@@ -478,7 +497,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         }
 
         val backAzimuth = (azimuthToDisplay + 180) % 360
-        tvBackAzimuth.text = "Back-Azimuth: ${String.format("%.1f", backAzimuth)}°"
+        tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
     }
 
     fun onNewIntent(intent: Intent?) {
@@ -732,7 +751,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     }
     private fun updatePointsList() {
         btnIntersection.isEnabled = selectedLocations.size >= 2
-        tvListHeader.text = "Saved Points (${selectedLocations.size})"
+        tvListHeader.text = "Active Points (${selectedLocations.size})"
         llPointsContainer.removeAllViews()
 
         for (i in selectedLocations.indices) {
@@ -1045,7 +1064,9 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
         // Disable editing if we don't have a location
         val hasLocation = currentLat != null && currentLon != null
-        btnSelect.isEnabled = hasLocation
+        flSelectArea.isEnabled = hasLocation
+        flSelectArea.alpha = if (hasLocation) 1.0f else 0.5f
+        tvSelectReadingText.visibility = if (hasLocation) View.VISIBLE else View.INVISIBLE
         cbManualAzimuth.isEnabled = hasLocation
         etAzimuth.isEnabled = hasLocation && cbManualAzimuth.isChecked
 

@@ -6,123 +6,97 @@
     android:layout_height="match_parent"
     tools:context=".ui.HomeFragment">
 
-    <ImageView
-        android:id="@+id/ivArrow"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:layout_marginTop="32dp"
-        android:src="@android:drawable/arrow_up_float"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:tint="@android:color/holo_red_dark" />
-
-    <TextView
-        android:id="@+id/tvInstructions"
+    <LinearLayout
+        android:id="@+id/llMagnetic"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Point the arrow to the selected location"
-        android:textSize="16sp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/ivArrow" />
+        app:layout_constraintTop_toTopOf="parent">
 
-    <TextView
-        android:id="@+id/tvDeclination"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text=""
-        android:textSize="14sp"
-        android:textColor="@android:color/holo_blue_dark"
-        android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvInstructions" />
+        <TextView
+            android:id="@+id/tvDeclination"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Magnetic declination: 0.0°"
+            android:textSize="14sp"
+            android:textColor="@android:color/holo_blue_dark" />
 
-    <CheckBox
-        android:id="@+id/cbMagnetic"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Apply Magnetic Declination (True North)"
-        android:checked="false"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvDeclination" />
-
-    <CheckBox
-        android:id="@+id/cbManualAzimuth"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Manual Azimuth Input"
-        android:checked="false"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/cbMagnetic" />
+        <CheckBox
+            android:id="@+id/cbMagnetic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="apply"
+            android:checked="false" />
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/llAzimuth"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/cbManualAzimuth">
+        app:layout_constraintTop_toBottomOf="@id/llMagnetic">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Azimuth: "
-            android:textSize="20sp" />
+            android:text="Azimuth "
+            android:textSize="16sp" />
+
+        <CheckBox
+            android:id="@+id/cbManualAzimuth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="manual "
+            android:checked="false" />
 
         <EditText
             android:id="@+id/etAzimuth"
-            android:layout_width="100dp"
+            android:layout_width="70dp"
             android:layout_height="wrap_content"
             android:inputType="numberDecimal"
             android:imeOptions="actionDone"
-            android:textSize="20sp"
+            android:textSize="16sp"
             android:textAlignment="center" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="°"
-            android:textSize="20sp" />
-    </LinearLayout>
+            android:text="° back "
+            android:textSize="16sp" />
 
-    <TextView
-        android:id="@+id/tvBackAzimuth"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Back-Azimuth: 0°"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/llAzimuth" />
+        <TextView
+            android:id="@+id/tvBackAzimuth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0°"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/llDistance"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvBackAzimuth">
+        app:layout_constraintTop_toBottomOf="@id/llAzimuth">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Default Line Dist: "
+            android:text="Default Line Length: "
             android:textSize="16sp" />
 
         <EditText
@@ -143,20 +117,23 @@
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/llButtons"
+        android:id="@+id/llPointsHeader"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="16dp"
         android:orientation="horizontal"
+        android:gravity="center_vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/llDistance">
 
-        <Button
-            android:id="@+id/btnSelect"
+        <TextView
+            android:id="@+id/tvListHeader"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Select Reading" />
+            android:text="Active Points (0)"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/btnIntersection"
@@ -167,18 +144,6 @@
             android:enabled="false" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tvListHeader"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Saved Points (0)"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/llButtons" />
-
     <LinearLayout
         android:id="@+id/llTableHeader"
         android:layout_width="match_parent"
@@ -186,7 +151,7 @@
         android:layout_marginTop="8dp"
         android:padding="8dp"
         android:orientation="horizontal"
-        app:layout_constraintTop_toBottomOf="@id/tvListHeader">
+        app:layout_constraintTop_toBottomOf="@id/llPointsHeader">
 
         <TextView
             android:layout_width="0dp"
@@ -214,10 +179,11 @@
     </LinearLayout>
 
     <ScrollView
+        android:id="@+id/svPoints"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintTop_toBottomOf="@id/llTableHeader"
-        app:layout_constraintBottom_toBottomOf="parent">
+        app:layout_constraintBottom_toTopOf="@id/llArrowContainer">
 
         <LinearLayout
             android:id="@+id/llPointsContainer"
@@ -229,5 +195,54 @@
             android:paddingBottom="16dp" />
 
     </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/llArrowContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tvInstructions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Point the arrow to the selected location"
+            android:textSize="16sp" />
+
+        <FrameLayout
+            android:id="@+id/flSelectArea"
+            android:layout_width="280dp"
+            android:layout_height="280dp"
+            android:layout_marginTop="8dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/ivArrow"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@android:drawable/arrow_up_float"
+                app:tint="@android:color/holo_red_dark" />
+
+            <TextView
+                android:id="@+id/tvSelectReadingText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="Select\nReading"
+                android:textAlignment="center"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/white"
+                android:shadowColor="#000000"
+                android:shadowRadius="8"
+                android:shadowDx="2"
+                android:shadowDy="2" />
+        </FrameLayout>
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

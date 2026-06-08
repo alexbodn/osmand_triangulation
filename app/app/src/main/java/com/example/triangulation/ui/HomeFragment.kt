@@ -227,12 +227,13 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                                 Thread.sleep(500)
                                                 if (osmandHelper.setMapLocation(targetLat, targetLon, 15)) {
                                                     success = true
-                                                    activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${targetLat},${targetLon}", Toast.LENGTH_SHORT).show() } }
                                                     break
                                                 }
                                             }
                                             if (!success) {
                                                 activity?.runOnUiThread { context?.let { Toast.makeText(it, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() } }
+                                            } else {
+                                                activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${targetLat},${targetLon}", Toast.LENGTH_SHORT).show() } }
                                             }
                                         } else {
                                             activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${targetLat},${targetLon}", Toast.LENGTH_SHORT).show() } }
@@ -287,12 +288,13 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                 Thread.sleep(500)
                                 if (osmandHelper.setMapLocation(finalLat, finalLon, 15)) {
                                     success = true
-                                    activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${finalLat},${finalLon}", Toast.LENGTH_SHORT).show() } }
                                     break
                                 }
                             }
                             if (!success) {
                                 activity?.runOnUiThread { context?.let { Toast.makeText(it, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() } }
+                            } else {
+                                activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${finalLat},${finalLon}", Toast.LENGTH_SHORT).show() } }
                             }
                         } else {
                             activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${finalLat},${finalLon}", Toast.LENGTH_SHORT).show() } }
@@ -805,12 +807,13 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             Thread.sleep(500)
                             if (osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) {
                                 success = true
-                                activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${reading.lat},${reading.lon}", Toast.LENGTH_SHORT).show() } }
                                 break
                             }
                         }
                         if (!success) {
                             activity?.runOnUiThread { context?.let { Toast.makeText(it, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() } }
+                        } else {
+                            activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${reading.lat},${reading.lon}", Toast.LENGTH_SHORT).show() } }
                         }
                     } else {
                         activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${reading.lat},${reading.lon}", Toast.LENGTH_SHORT).show() } }

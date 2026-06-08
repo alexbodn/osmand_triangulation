@@ -87,14 +87,13 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                             Thread.sleep(500)
                             if (osmandHelper.setMapLocation(loc.lat, loc.lon, 15)) {
                                 success = true
-                                activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show() } }
                                 break
                             }
                         }
                         if (!success) {
-                            activity?.runOnUiThread {
-                                context?.let { Toast.makeText(it, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() }
-                            }
+                            activity?.runOnUiThread { context?.let { Toast.makeText(it, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() } }
+                        } else {
+                            activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show() } }
                         }
                     } else {
                         activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show() } }

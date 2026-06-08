@@ -73,27 +73,30 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
             },
             onShowClick = { loc ->
                 val aidlSuccess = osmandHelper.setMapLocation(loc.lat, loc.lon, 15)
-                var launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                     ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
 
                 if (launchIntent != null) {
                     launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    val finalIntent = if (aidlSuccess) {
+                    if (aidlSuccess) {
                         Toast.makeText(requireContext(), "osmand hot @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show()
-                        launchIntent
+                        startActivity(launchIntent)
                     } else {
-                        val uri = android.net.Uri.parse("geo:${loc.lat},${loc.lon}?z=15")
-                        val newIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
-                        newIntent.setPackage("net.osmand.plus")
-                        newIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         Toast.makeText(requireContext(), "osmand cold @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show()
-                        newIntent
-                    }
-                    try {
-                        startActivity(finalIntent)
-                    } catch (e: Exception) {
-                        finalIntent.setPackage("net.osmand")
-                        startActivity(finalIntent)
+                        startActivity(launchIntent)
+                        Thread {
+                            var success = false
+                            for (i in 1..10) {
+                                Thread.sleep(500)
+                                if (osmandHelper.setMapLocation(loc.lat, loc.lon, 15)) {
+                                    success = true
+                                    break
+                                }
+                            }
+                            if (!success) {
+                                requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Failed to set OsmAnd location after retries", Toast.LENGTH_SHORT).show() }
+                            }
+                        }.start()
                     }
                 }
             },

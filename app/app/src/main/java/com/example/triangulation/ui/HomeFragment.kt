@@ -221,31 +221,36 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                 aidlSuccess = osmandHelper.setMapLocation(targetLat, targetLon, 15)
                             }
 
-                            var launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                            val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                                 ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
 
                             if (launchIntent != null) {
                                 launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-                                val finalIntent = if (targetLat != null && targetLon != null) {
+                                if (targetLat != null && targetLon != null) {
                                     if (aidlSuccess) {
                                         requireActivity().runOnUiThread { Toast.makeText(requireContext(), "osmand hot @ ${targetLat},${targetLon}", Toast.LENGTH_SHORT).show() }
-                                        launchIntent
+                                        startActivity(launchIntent)
                                     } else {
-                                        val uri = android.net.Uri.parse("geo:${targetLat},${targetLon}?z=15")
-                                        val newIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
-                                        newIntent.setPackage("net.osmand.plus")
-                                        newIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                                         requireActivity().runOnUiThread { Toast.makeText(requireContext(), "osmand cold @ ${targetLat},${targetLon}", Toast.LENGTH_SHORT).show() }
-                                        newIntent
+                                        startActivity(launchIntent)
+                                        val latFinal = targetLat
+                                        val lonFinal = targetLon
+                                        Thread {
+                                            var success = false
+                                            for (i in 1..10) {
+                                                Thread.sleep(500)
+                                                if (osmandHelper.setMapLocation(latFinal, lonFinal, 15)) {
+                                                    success = true
+                                                    break
+                                                }
+                                            }
+                                            if (!success) {
+                                                requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Failed to set OsmAnd location after retries", Toast.LENGTH_SHORT).show() }
+                                            }
+                                        }.start()
                                     }
                                 } else {
-                                    launchIntent
-                                }
-                                try {
-                                    startActivity(finalIntent)
-                                } catch (e: Exception) {
-                                    finalIntent.setPackage("net.osmand")
-                                    startActivity(finalIntent)
+                                    startActivity(launchIntent)
                                 }
                             }
                         }
@@ -281,27 +286,30 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     val finalLon = targetLon!!
 
                     val aidlSuccess = osmandHelper.setMapLocation(finalLat, finalLon, 15)
-                    var launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                    val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                         ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
 
                     if (launchIntent != null) {
                         launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-                        val finalIntent = if (aidlSuccess) {
+                        if (aidlSuccess) {
                             Toast.makeText(requireContext(), "osmand hot @ ${finalLat},${finalLon}", Toast.LENGTH_SHORT).show()
-                            launchIntent
+                            startActivity(launchIntent)
                         } else {
-                            val uri = android.net.Uri.parse("geo:${finalLat},${finalLon}?z=15")
-                            val newIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
-                            newIntent.setPackage("net.osmand.plus")
-                            newIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                             Toast.makeText(requireContext(), "osmand cold @ ${finalLat},${finalLon}", Toast.LENGTH_SHORT).show()
-                            newIntent
-                        }
-                        try {
-                            startActivity(finalIntent)
-                        } catch (e: Exception) {
-                            finalIntent.setPackage("net.osmand")
-                            startActivity(finalIntent)
+                            startActivity(launchIntent)
+                            Thread {
+                                var success = false
+                                for (i in 1..10) {
+                                    Thread.sleep(500)
+                                    if (osmandHelper.setMapLocation(finalLat, finalLon, 15)) {
+                                        success = true
+                                        break
+                                    }
+                                }
+                                if (!success) {
+                                    requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Failed to set OsmAnd location after retries", Toast.LENGTH_SHORT).show() }
+                                }
+                            }.start()
                         }
                     }
                 } else {
@@ -797,27 +805,30 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
             btnView.setOnClickListener {
                 val aidlSuccess = osmandHelper.setMapLocation(reading.lat, reading.lon, 15)
-                var launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                     ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
 
                 if (launchIntent != null) {
                     launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    val finalIntent = if (aidlSuccess) {
+                    if (aidlSuccess) {
                         Toast.makeText(requireContext(), "osmand hot @ ${reading.lat},${reading.lon}", Toast.LENGTH_SHORT).show()
-                        launchIntent
+                        startActivity(launchIntent)
                     } else {
-                        val uri = android.net.Uri.parse("geo:${reading.lat},${reading.lon}?z=15")
-                        val newIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
-                        newIntent.setPackage("net.osmand.plus")
-                        newIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         Toast.makeText(requireContext(), "osmand cold @ ${reading.lat},${reading.lon}", Toast.LENGTH_SHORT).show()
-                        newIntent
-                    }
-                    try {
-                        startActivity(finalIntent)
-                    } catch (e: Exception) {
-                        finalIntent.setPackage("net.osmand")
-                        startActivity(finalIntent)
+                        startActivity(launchIntent)
+                        Thread {
+                            var success = false
+                            for (i in 1..10) {
+                                Thread.sleep(500)
+                                if (osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) {
+                                    success = true
+                                    break
+                                }
+                            }
+                            if (!success) {
+                                requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Failed to set OsmAnd location after retries", Toast.LENGTH_SHORT).show() }
+                            }
+                        }.start()
                     }
                 }
             }

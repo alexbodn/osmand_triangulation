@@ -352,16 +352,34 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     }
 
     private fun calculateCurrentDeclination(): Float {
-        var declinationTargetLat = currentLat ?: 0.0
-        var declinationTargetLon = currentLon ?: 0.0
+        var declinationTargetLat = 0.0
+        var declinationTargetLon = 0.0
 
-        if (selectedLocations.isNotEmpty()) {
-            val fakeCurrentReading = Reading(declinationTargetLat, declinationTargetLon, baseAzimuth, (baseAzimuth + 180f) % 360f)
-            val r1 = selectedLocations.last()
-            val intersection = calculateIntersection(r1, fakeCurrentReading)
-            if (intersection != null) {
-                declinationTargetLat = intersection.first
-                declinationTargetLon = intersection.second
+        if (currentLat != null && currentLon != null) {
+            declinationTargetLat = currentLat!!
+            declinationTargetLon = currentLon!!
+        } else if (selectedLocations.size >= 2) {
+            val cog = calculateCenterOfGravity()
+            if (cog != null) {
+                declinationTargetLat = cog.first
+                declinationTargetLon = cog.second
+            } else {
+                val r1 = selectedLocations[selectedLocations.size - 2]
+                val r2 = selectedLocations[selectedLocations.size - 1]
+                val intersection = calculateIntersection(r1, r2)
+                if (intersection != null) {
+                    declinationTargetLat = intersection.first
+                    declinationTargetLon = intersection.second
+                }
+            }
+        } else if (selectedLocations.size == 1) {
+            declinationTargetLat = selectedLocations.first().lat
+            declinationTargetLon = selectedLocations.first().lon
+        } else {
+            val libraryLocations = libraryManager.getLocations()
+            if (libraryLocations.isNotEmpty()) {
+                declinationTargetLat = libraryLocations.first().lat
+                declinationTargetLon = libraryLocations.first().lon
             }
         }
 

@@ -76,6 +76,9 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                     ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
                 if (launchIntent != null) {
                     launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    launchIntent.putExtra("lat", loc.lat)
+                    launchIntent.putExtra("lon", loc.lon)
+                    Toast.makeText(requireContext(), "osmand @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show()
                     startActivity(launchIntent)
                 }
 

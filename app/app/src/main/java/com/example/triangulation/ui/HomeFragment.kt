@@ -247,6 +247,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                             var success = false
                                             for (i in 1..20) {
                                                 Thread.sleep(500)
+                                                osmandHelper.bindService()
                                                 if (osmandHelper.setMapLocation(latFinal, lonFinal, 15)) {
                                                     success = true
                                                     break
@@ -326,6 +327,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                 var success = false
                                 for (i in 1..20) {
                                     Thread.sleep(500)
+                                    osmandHelper.bindService()
                                     if (osmandHelper.setMapLocation(finalLat, finalLon, 15)) {
                                         success = true
                                         break
@@ -856,6 +858,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             var success = false
                             for (i in 1..20) {
                                 Thread.sleep(500)
+                                osmandHelper.bindService()
                                 if (osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) {
                                     success = true
                                     break

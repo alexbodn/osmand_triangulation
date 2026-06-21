@@ -97,6 +97,7 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                             var success = false
                             for (i in 1..20) {
                                 Thread.sleep(500)
+                                osmandHelper.bindService()
                                 if (osmandHelper.setMapLocation(loc.lat, loc.lon, 15)) {
                                     success = true
                                     break

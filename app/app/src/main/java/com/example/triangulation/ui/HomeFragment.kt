@@ -221,6 +221,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             if (targetLat != null && targetLon != null) {
                                 val latFinal = targetLat
                                 val lonFinal = targetLon
+                                osmandHelper.bindService()
                                 val aidlSuccess = osmandHelper.setMapLocation(latFinal, lonFinal, 15)
                                 var launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                                     ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
@@ -245,12 +246,11 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                                         Thread {
                                             var success = false
-                                            for (i in 1..20) {
+                                            for (i in 1..4) {
                                                 Thread.sleep(500)
                                                 osmandHelper.bindService()
                                                 if (osmandHelper.setMapLocation(latFinal, lonFinal, 15)) {
                                                     success = true
-                                                    break
                                                 }
                                             }
                                             if (!success) {
@@ -302,6 +302,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     val finalLat = targetLat!!
                     val finalLon = targetLon!!
 
+                    osmandHelper.bindService()
                     val aidlSuccess = osmandHelper.setMapLocation(finalLat, finalLon, 15)
                     val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                         ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
@@ -325,12 +326,11 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                             Thread {
                                 var success = false
-                                for (i in 1..20) {
+                                for (i in 1..4) {
                                     Thread.sleep(500)
                                     osmandHelper.bindService()
                                     if (osmandHelper.setMapLocation(finalLat, finalLon, 15)) {
                                         success = true
-                                        break
                                     }
                                 }
                                 if (!success) {
@@ -833,6 +833,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             btnView.setOnClickListener {
+                osmandHelper.bindService()
                 val aidlSuccess = osmandHelper.setMapLocation(reading.lat, reading.lon, 15)
                 val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                     ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
@@ -856,12 +857,11 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                         Thread {
                             var success = false
-                            for (i in 1..20) {
+                            for (i in 1..4) {
                                 Thread.sleep(500)
                                 osmandHelper.bindService()
                                 if (osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) {
                                     success = true
-                                    break
                                 }
                             }
                             if (!success) {

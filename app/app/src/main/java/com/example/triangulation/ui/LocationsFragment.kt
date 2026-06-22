@@ -72,6 +72,7 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                 }
             },
             onShowClick = { loc ->
+                osmandHelper.bindService()
                 val aidlSuccess = osmandHelper.setMapLocation(loc.lat, loc.lon, 15)
                 val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                     ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
@@ -95,12 +96,11 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
 
                         Thread {
                             var success = false
-                            for (i in 1..20) {
+                            for (i in 1..4) {
                                 Thread.sleep(500)
                                 osmandHelper.bindService()
                                 if (osmandHelper.setMapLocation(loc.lat, loc.lon, 15)) {
                                     success = true
-                                    break
                                 }
                             }
                             if (!success) {

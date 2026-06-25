@@ -74,11 +74,11 @@ class OsmAndAidlHelper(private val application: Application, private val listene
         try {
             val intent = Intent("net.osmand.aidl.OsmandAidlServiceV2")
             intent.setPackage("net.osmand.plus")
-            var bound = application.bindService(intent, serviceConnection, 0)
+            var bound = application.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
 
             if (!bound) {
                 intent.setPackage("net.osmand")
-                bound = application.bindService(intent, serviceConnection, 0)
+                bound = application.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
             }
 
             isBound = bound

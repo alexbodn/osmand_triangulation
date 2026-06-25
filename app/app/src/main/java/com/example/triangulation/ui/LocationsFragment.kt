@@ -72,26 +72,23 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                 }
             },
             onShowClick = { loc ->
+                val aidlSuccess = osmandHelper.setMapLocation(loc.lat, loc.lon, 15)
                 val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                     ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
                 if (launchIntent != null) {
                     launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     launchIntent.putExtra("lat", loc.lat)
                     launchIntent.putExtra("lon", loc.lon)
+                    if (aidlSuccess) {
+                        activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand hot @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show() } }
+                    } else {
+                        activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand cold @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show() } }
+                    }
                     startActivity(launchIntent)
 
                     Thread {
-                        osmandHelper.bindService()
-                        var success = false
-                        for (i in 1..20) {
-                            Thread.sleep(250)
-                            if (osmandHelper.setMapLocation(loc.lat, loc.lon, 15)) {
-                                success = true
-                                activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show() } }
-                                break
-                            }
-                        }
-                        if (!success) {
+                        Thread.sleep(300)
+                        if (!osmandHelper.setMapLocation(loc.lat, loc.lon, 15)) {
                             activity?.runOnUiThread {
                                 context?.let { Toast.makeText(it, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() }
                             }

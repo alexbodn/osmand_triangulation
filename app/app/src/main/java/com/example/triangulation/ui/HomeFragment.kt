@@ -221,8 +221,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             if (targetLat != null && targetLon != null) {
                                 val latFinal = targetLat
                                 val lonFinal = targetLon
-                                osmandHelper.bindService()
-                                val aidlSuccess = osmandHelper.setMapLocation(latFinal, lonFinal, 15)
                                 val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                                     ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
 
@@ -230,16 +228,20 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                     launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                                     launchIntent.putExtra("lat", latFinal)
                                     launchIntent.putExtra("lon", lonFinal)
-                                    if (aidlSuccess) {
-                                        activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand hot @ ${latFinal},${lonFinal}", Toast.LENGTH_SHORT).show() } }
-                                    } else {
-                                        activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand cold @ ${latFinal},${lonFinal}", Toast.LENGTH_SHORT).show() } }
-                                    }
                                     startActivity(launchIntent)
 
                                     Thread {
-                                        Thread.sleep(300)
-                                        if (!osmandHelper.setMapLocation(latFinal, lonFinal, 15)) {
+                                        osmandHelper.bindService()
+                                        var success = false
+                                        for (i in 1..20) {
+                                            Thread.sleep(250)
+                                            if (osmandHelper.setMapLocation(latFinal, lonFinal, 15)) {
+                                                success = true
+                                                activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${latFinal},${lonFinal}", Toast.LENGTH_SHORT).show() } }
+                                                break
+                                            }
+                                        }
+                                        if (!success) {
                                             activity?.runOnUiThread { context?.let { Toast.makeText(it, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() } }
                                         }
                                     }.start()
@@ -285,24 +287,26 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     val finalLat = targetLat!!
                     val finalLon = targetLon!!
 
-                    osmandHelper.bindService()
-                    val aidlSuccess = osmandHelper.setMapLocation(finalLat, finalLon, 15)
                     val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                         ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
                     if (launchIntent != null) {
                         launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                         launchIntent.putExtra("lat", finalLat)
                         launchIntent.putExtra("lon", finalLon)
-                        if (aidlSuccess) {
-                            activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand hot @ ${finalLat},${finalLon}", Toast.LENGTH_SHORT).show() } }
-                        } else {
-                            activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand cold @ ${finalLat},${finalLon}", Toast.LENGTH_SHORT).show() } }
-                        }
                         startActivity(launchIntent)
 
                         Thread {
-                            Thread.sleep(300)
-                            if (!osmandHelper.setMapLocation(finalLat, finalLon, 15)) {
+                            osmandHelper.bindService()
+                            var success = false
+                            for (i in 1..20) {
+                                Thread.sleep(250)
+                                if (osmandHelper.setMapLocation(finalLat, finalLon, 15)) {
+                                    success = true
+                                    activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${finalLat},${finalLon}", Toast.LENGTH_SHORT).show() } }
+                                    break
+                                }
+                            }
+                            if (!success) {
                                 activity?.runOnUiThread { context?.let { Toast.makeText(it, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() } }
                             }
                         }.start()
@@ -799,24 +803,26 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             btnView.setOnClickListener {
-                osmandHelper.bindService()
-                val aidlSuccess = osmandHelper.setMapLocation(reading.lat, reading.lon, 15)
                 val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                     ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
                 if (launchIntent != null) {
                     launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     launchIntent.putExtra("lat", reading.lat)
                     launchIntent.putExtra("lon", reading.lon)
-                    if (aidlSuccess) {
-                        activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand hot @ ${reading.lat},${reading.lon}", Toast.LENGTH_SHORT).show() } }
-                    } else {
-                        activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand cold @ ${reading.lat},${reading.lon}", Toast.LENGTH_SHORT).show() } }
-                    }
                     startActivity(launchIntent)
 
                     Thread {
-                        Thread.sleep(300)
-                        if (!osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) {
+                        osmandHelper.bindService()
+                        var success = false
+                        for (i in 1..20) {
+                            Thread.sleep(250)
+                            if (osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) {
+                                success = true
+                                activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand panned @ ${reading.lat},${reading.lon}", Toast.LENGTH_SHORT).show() } }
+                                break
+                            }
+                        }
+                        if (!success) {
                             activity?.runOnUiThread { context?.let { Toast.makeText(it, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() } }
                         }
                     }.start()

@@ -21,6 +21,8 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
     private lateinit var adapter: LocationsAdapter
     private lateinit var libraryManager: LocationLibraryManager
     private lateinit var osmandHelper: OsmAndAidlHelper
+    private var pendingPanLat: Double? = null
+    private var pendingPanLon: Double? = null
 
     // Optional bounding box filter
     private var bboxFilter: DoubleArray? = null // [minLon, minLat, maxLon, maxLat]
@@ -71,29 +73,15 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                     viewPager?.currentItem = 0
                 }
             },
-            onShowClick = { loc ->
-                val aidlSuccess = osmandHelper.setMapLocation(loc.lat, loc.lon, 15)
+            onShowClick = { point ->
                 val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                     ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
                 if (launchIntent != null) {
                     launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    launchIntent.putExtra("lat", loc.lat)
-                    launchIntent.putExtra("lon", loc.lon)
-                    if (aidlSuccess) {
-                        activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand hot @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show() } }
-                    } else {
-                        activity?.runOnUiThread { context?.let { Toast.makeText(it, "osmand cold @ ${loc.lat},${loc.lon}", Toast.LENGTH_SHORT).show() } }
-                    }
+                    pendingPanLat = point.lat
+                    pendingPanLon = point.lon
                     startActivity(launchIntent)
-
-                    Thread {
-                        Thread.sleep(300)
-                        if (!osmandHelper.setMapLocation(loc.lat, loc.lon, 15)) {
-                            activity?.runOnUiThread {
-                                context?.let { Toast.makeText(it, "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show() }
-                            }
-                        }
-                    }.start()
+                    osmandHelper.bindService()
                 }
             },
             onDeleteClick = { loc ->
@@ -218,7 +206,23 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
         startActivity(Intent.createChooser(intent, "Export Locations"))
     }
 
-    override fun onOsmAndServiceConnected() {}
+    override fun onOsmAndServiceConnected() {
+        val lat = pendingPanLat
+        val lon = pendingPanLon
+        if (lat != null && lon != null) {
+            Thread {
+                Thread.sleep(300)
+                if (osmandHelper.setMapLocation(lat, lon, 15)) {
+                    activity?.runOnUiThread { context?.let { Toast.makeText(it, "OsmAnd panned @ $lat,$lon", Toast.LENGTH_SHORT).show() } }
+                } else {
+                    activity?.runOnUiThread { context?.let { Toast.makeText(it, "Failed to pan OsmAnd @ $lat,$lon", Toast.LENGTH_SHORT).show() } }
+                }
+                pendingPanLat = null
+                pendingPanLon = null
+                osmandHelper.unbindService()
+            }.start()
+        }
+    }
     override fun onOsmAndServiceDisconnected() {}
     override fun onContextMenuButtonClicked(buttonId: Int, pointId: String?, layerId: String?) {}
 

@@ -72,7 +72,7 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                 }
             },
             onShowClick = { loc ->
-                val uri = android.net.Uri.parse("geo:${loc.lat},${loc.lon}?z=15")
+                val uri = android.net.Uri.parse("https://osmand.net/map/#15/${loc.lat}/${loc.lon}")
                 val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
                 coldIntent.setPackage("net.osmand.plus")
                 coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
@@ -80,7 +80,11 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                     startActivity(coldIntent)
                 } catch (e: Exception) {
                     coldIntent.setPackage("net.osmand")
-                    startActivity(coldIntent)
+                    try {
+                        startActivity(coldIntent)
+                    } catch (e2: Exception) {
+                        requireActivity().runOnUiThread { Toast.makeText(requireContext(), "OsmAnd not found", Toast.LENGTH_SHORT).show() }
+                    }
                 }
 
                 Thread {

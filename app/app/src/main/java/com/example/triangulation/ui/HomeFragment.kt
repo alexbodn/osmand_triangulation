@@ -217,7 +217,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                     val targetLat = cog.first
                                     val targetLon = cog.second
 
-                                    val uri = android.net.Uri.parse("geo:${targetLat},${targetLon}?z=15")
+                                    val uri = android.net.Uri.parse("https://osmand.net/map/#15/${targetLat}/${targetLon}")
                                     val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
                                     coldIntent.setPackage("net.osmand.plus")
                                     coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
@@ -225,7 +225,11 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                         startActivity(coldIntent)
                                     } catch (e: Exception) {
                                         coldIntent.setPackage("net.osmand")
-                                        startActivity(coldIntent)
+                                        try {
+                                            startActivity(coldIntent)
+                                        } catch (e2: Exception) {
+                                            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "OsmAnd not found", Toast.LENGTH_SHORT).show() }
+                                        }
                                     }
 
                                     Thread {
@@ -268,7 +272,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     val finalLat = targetLat
                     val finalLon = targetLon
 
-                    val uri = android.net.Uri.parse("geo:${finalLat},${finalLon}?z=15")
+                    val uri = android.net.Uri.parse("https://osmand.net/map/#15/${finalLat}/${finalLon}")
                     val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
                     coldIntent.setPackage("net.osmand.plus")
                     coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
@@ -276,7 +280,11 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                         startActivity(coldIntent)
                     } catch (e: Exception) {
                         coldIntent.setPackage("net.osmand")
-                        startActivity(coldIntent)
+                        try {
+                            startActivity(coldIntent)
+                        } catch (e2: Exception) {
+                            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "OsmAnd not found", Toast.LENGTH_SHORT).show() }
+                        }
                     }
 
                     Thread {
@@ -777,7 +785,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             btnView.setOnClickListener {
-                val uri = android.net.Uri.parse("geo:${reading.lat},${reading.lon}?z=15")
+                val uri = android.net.Uri.parse("https://osmand.net/map/#15/${reading.lat}/${reading.lon}")
                 val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
                 coldIntent.setPackage("net.osmand.plus")
                 coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
@@ -785,7 +793,11 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     startActivity(coldIntent)
                 } catch (e: Exception) {
                     coldIntent.setPackage("net.osmand")
-                    startActivity(coldIntent)
+                    try {
+                        startActivity(coldIntent)
+                    } catch (e2: Exception) {
+                        requireActivity().runOnUiThread { Toast.makeText(requireContext(), "OsmAnd not found", Toast.LENGTH_SHORT).show() }
+                    }
                 }
 
                 Thread {

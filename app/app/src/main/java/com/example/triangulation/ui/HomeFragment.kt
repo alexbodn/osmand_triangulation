@@ -68,8 +68,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private lateinit var osmandHelper: OsmAndAidlHelper
     private var isPluginDialogShowing = false
     private var isInstallDialogShowing = false
-    private var pendingPanLat: Double? = null
-    private var pendingPanLon: Double? = null
 
     override fun onCreateView(inflater: android.view.LayoutInflater, container: android.view.ViewGroup?, savedInstanceState: Bundle?): android.view.View? {
         return inflater.inflate(com.example.triangulation.R.layout.fragment_home, container, false)
@@ -210,18 +208,32 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                         requireActivity().runOnUiThread {
                             val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                                 ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
-                            if (launchIntent != null) {
-                                launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-                                startActivity(launchIntent)
-                            }
+                            // Map will open automatically when cog or intersection is launched
                             // Removed finish() so that returning to the app from background won't replay the intent via onCreate
 
                             if (selectedLocations.size >= 2) {
                                 val cog = calculateCenterOfGravity()
                                 if (cog != null) {
-                                    pendingPanLat = cog.first
-                                    pendingPanLon = cog.second
-                                    osmandHelper.bindService()
+                                    val targetLat = cog.first
+                                    val targetLon = cog.second
+
+                                    val uri = android.net.Uri.parse("geo:${targetLat},${targetLon}?z=15")
+                                    val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+                                    coldIntent.setPackage("net.osmand.plus")
+                                    coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                                    try {
+                                        startActivity(coldIntent)
+                                    } catch (e: Exception) {
+                                        coldIntent.setPackage("net.osmand")
+                                        startActivity(coldIntent)
+                                    }
+
+                                    Thread {
+                                        Thread.sleep(300)
+                                        if (!osmandHelper.setMapLocation(targetLat, targetLon, 15)) {
+                                            // Silent fallback, the intent should have worked
+                                        }
+                                    }.start()
                                 }
                             }
                         }
@@ -253,15 +265,26 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 }
 
                 if (targetLat != null && targetLon != null) {
-                    val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
-                        ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
-                    if (launchIntent != null) {
-                        launchIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-                        pendingPanLat = targetLat
-                        pendingPanLon = targetLon
-                        startActivity(launchIntent)
-                        osmandHelper.bindService()
+                    val finalLat = targetLat
+                    val finalLon = targetLon
+
+                    val uri = android.net.Uri.parse("geo:${finalLat},${finalLon}?z=15")
+                    val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+                    coldIntent.setPackage("net.osmand.plus")
+                    coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                    try {
+                        startActivity(coldIntent)
+                    } catch (e: Exception) {
+                        coldIntent.setPackage("net.osmand")
+                        startActivity(coldIntent)
                     }
+
+                    Thread {
+                        Thread.sleep(300)
+                        if (!osmandHelper.setMapLocation(finalLat, finalLon, 15)) {
+                            // Silent fallback, intent should handle it
+                        }
+                    }.start()
                 } else {
                     Toast.makeText(requireContext(), "Could not calculate intersection.", Toast.LENGTH_SHORT).show()
                 }
@@ -367,24 +390,10 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
     override fun onOsmAndServiceConnected() {
         Log.d("Triangulation", "OsmAnd Service Connected. Registering Context Menu Button.")
-        if (!osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")) {
-            activity?.runOnUiThread { context?.let { Toast.makeText(it, "Failed to add context menu to OsmAnd", Toast.LENGTH_SHORT).show() } }
+        requireActivity().runOnUiThread {
+            Toast.makeText(requireContext(), "Connected to OsmAnd API", Toast.LENGTH_SHORT).show()
         }
-        val lat = pendingPanLat
-        val lon = pendingPanLon
-        if (lat != null && lon != null) {
-            Thread {
-                Thread.sleep(300)
-                if (osmandHelper.setMapLocation(lat, lon, 15)) {
-                    activity?.runOnUiThread { context?.let { Toast.makeText(it, "OsmAnd panned @ $lat,$lon", Toast.LENGTH_SHORT).show() } }
-                } else {
-                    activity?.runOnUiThread { context?.let { Toast.makeText(it, "Failed to pan OsmAnd @ $lat,$lon", Toast.LENGTH_SHORT).show() } }
-                }
-                pendingPanLat = null
-                pendingPanLon = null
-                osmandHelper.unbindService()
-            }.start()
-        }
+        if (!osmandHelper.addContextMenuButton(1001, "Take Back-Azimuth", "")) Toast.makeText(requireContext(), "Failed to add context menu to OsmAnd", Toast.LENGTH_SHORT).show()
     }
 
     override fun onOsmAndServiceDisconnected() {
@@ -768,15 +777,23 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             btnView.setOnClickListener {
-                val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
-                    ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
-                if (launchIntent != null) {
-                    launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    pendingPanLat = reading.lat
-                    pendingPanLon = reading.lon
-                    startActivity(launchIntent)
-                    osmandHelper.bindService()
+                val uri = android.net.Uri.parse("geo:${reading.lat},${reading.lon}?z=15")
+                val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+                coldIntent.setPackage("net.osmand.plus")
+                coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                try {
+                    startActivity(coldIntent)
+                } catch (e: Exception) {
+                    coldIntent.setPackage("net.osmand")
+                    startActivity(coldIntent)
                 }
+
+                Thread {
+                    Thread.sleep(300)
+                    if (!osmandHelper.setMapLocation(reading.lat, reading.lon, 15)) {
+                        // Silent fallback, intent should handle it
+                    }
+                }.start()
             }
 
             btnDelete.setOnClickListener {
@@ -1035,9 +1052,14 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
 
+        // Ensure ties with OsmAnd are healthy when we regain focus
+        val bound = osmandHelper.bindService()
+
         // Check if OsmAnd is installed first
         if (!OsmAndAidlHelper.isOsmAndInstalled(requireContext())) {
             showOsmAndInstallDialog()
+        } else if (!bound) {
+            showOsmAndPluginAlert()
         }
 
         // Disable editing if we don't have a location

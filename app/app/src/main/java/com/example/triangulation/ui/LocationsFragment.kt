@@ -72,7 +72,7 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                 }
             },
             onShowClick = { loc ->
-                val uri = android.net.Uri.parse("https://osmand.net/map?lat=${loc.lat}&lon=${loc.lon}&z=15")
+                val uri = android.net.Uri.parse("geo:${loc.lat},${loc.lon}?z=15")
                 val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
                 coldIntent.setPackage("net.osmand.plus")
                 coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK

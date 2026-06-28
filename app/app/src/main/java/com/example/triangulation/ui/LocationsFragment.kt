@@ -72,19 +72,23 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                 }
             },
             onShowClick = { loc ->
-                val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
-                    ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
-                if (launchIntent != null) {
-                    launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    startActivity(launchIntent)
+                val uri = android.net.Uri.parse("geo:${loc.lat},${loc.lon}?z=15")
+                val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+                coldIntent.setPackage("net.osmand.plus")
+                coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                try {
+                    startActivity(coldIntent)
+                    android.widget.Toast.makeText(requireContext(), "OsmAnd+ hot/cold intent fired", android.widget.Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    coldIntent.setPackage("net.osmand")
+                    startActivity(coldIntent)
+                    android.widget.Toast.makeText(requireContext(), "OsmAnd hot/cold intent fired", android.widget.Toast.LENGTH_SHORT).show()
                 }
 
                 Thread {
                     Thread.sleep(300)
                     if (!osmandHelper.setMapLocation(loc.lat, loc.lon, 15)) {
-                        requireActivity().runOnUiThread {
-                            Toast.makeText(requireContext(), "Failed to set OsmAnd location", Toast.LENGTH_SHORT).show()
-                        }
+                        // Silent fallback, intent should handle it
                     }
                 }.start()
             },

@@ -217,15 +217,17 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                     val targetLat = cog.first
                                     val targetLon = cog.second
 
-                                    val uri = android.net.Uri.parse("https://osmand.net/map/#9/${targetLat}/${targetLon}")
+                                    val uri = android.net.Uri.parse("https://osmand.net/map?lat=${targetLat}&lon=${targetLon}&z=15")
                                     val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
                                     coldIntent.setPackage("net.osmand.plus")
                                     coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                                     try {
                                         startActivity(coldIntent)
+                                        Toast.makeText(requireContext(), "OsmAnd+ hot/cold intent fired", Toast.LENGTH_SHORT).show()
                                     } catch (e: Exception) {
                                         coldIntent.setPackage("net.osmand")
                                         startActivity(coldIntent)
+                                        Toast.makeText(requireContext(), "OsmAnd hot/cold intent fired", Toast.LENGTH_SHORT).show()
                                     }
 
                                     Thread {
@@ -268,15 +270,17 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     val finalLat = targetLat
                     val finalLon = targetLon
 
-                    val uri = android.net.Uri.parse("https://osmand.net/map/#9/${finalLat}/${finalLon}")
+                    val uri = android.net.Uri.parse("https://osmand.net/map?lat=${finalLat}&lon=${finalLon}&z=15")
                     val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
                     coldIntent.setPackage("net.osmand.plus")
                     coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                     try {
                         startActivity(coldIntent)
+                        Toast.makeText(requireContext(), "OsmAnd+ hot/cold intent fired", Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
                         coldIntent.setPackage("net.osmand")
                         startActivity(coldIntent)
+                        Toast.makeText(requireContext(), "OsmAnd hot/cold intent fired", Toast.LENGTH_SHORT).show()
                     }
 
                     Thread {
@@ -777,15 +781,17 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             btnView.setOnClickListener {
-                val uri = android.net.Uri.parse("https://osmand.net/map/#9/${reading.lat}/${reading.lon}")
+                val uri = android.net.Uri.parse("https://osmand.net/map?lat=${reading.lat}&lon=${reading.lon}&z=15")
                 val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
                 coldIntent.setPackage("net.osmand.plus")
                 coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                 try {
                     startActivity(coldIntent)
+                    Toast.makeText(requireContext(), "OsmAnd+ hot/cold intent fired", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
                     coldIntent.setPackage("net.osmand")
                     startActivity(coldIntent)
+                    Toast.makeText(requireContext(), "OsmAnd hot/cold intent fired", Toast.LENGTH_SHORT).show()
                 }
 
                 Thread {

@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
@@ -24,8 +25,8 @@ class LocationsAdapter(
         val tvDesc: TextView = view.findViewById(R.id.tvLocationDesc)
         val tvCoords: TextView = view.findViewById(R.id.tvLocationCoords)
         val btnPoint: Button = view.findViewById(R.id.btnPoint)
-        val btnShow: Button = view.findViewById(R.id.btnShow)
-        val btnDelete: Button = view.findViewById(R.id.btnDelete)
+        val btnShow: ImageButton = view.findViewById(R.id.btnShow)
+        val btnDelete: ImageButton = view.findViewById(R.id.btnDelete)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {

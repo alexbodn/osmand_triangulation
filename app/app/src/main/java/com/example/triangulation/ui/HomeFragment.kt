@@ -44,6 +44,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private lateinit var ivArrow: ImageView
     private lateinit var etAzimuth: EditText
     private lateinit var tvBackAzimuth: TextView
+    private lateinit var llMagnetic: android.widget.LinearLayout
     private lateinit var tvDeclination: TextView
     private lateinit var flSelectArea: android.widget.FrameLayout
     private lateinit var tvSelectReadingText: TextView
@@ -86,6 +87,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             ivArrow = view.findViewById(R.id.ivArrow)
             etAzimuth = view.findViewById(R.id.etAzimuth)
             tvBackAzimuth = view.findViewById(R.id.tvBackAzimuth)
+            llMagnetic = view.findViewById(R.id.llMagnetic)
             tvDeclination = view.findViewById(R.id.tvDeclination)
             flSelectArea = view.findViewById(R.id.flSelectArea)
             tvSelectReadingText = view.findViewById(R.id.tvSelectReadingText)
@@ -779,20 +781,41 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
             val tvAzimuth = itemView.findViewById<TextView>(R.id.tvPointAzimuth)
             val tvDesc = itemView.findViewById<TextView>(R.id.tvPointDesc)
-            val btnSave = itemView.findViewById<Button>(R.id.btnSave)
-            val btnView = itemView.findViewById<Button>(R.id.btnView)
-            val btnDelete = itemView.findViewById<Button>(R.id.btnDelete)
+            val tvCoords = itemView.findViewById<TextView>(R.id.tvPointCoords)
+            val llPointDesc = itemView.findViewById<android.widget.LinearLayout>(R.id.llPointDesc)
+            val ivThumb = itemView.findViewById<ImageView>(R.id.ivLocationThumb)
+            val btnSave = itemView.findViewById<android.widget.ImageButton>(R.id.btnSave)
+            val btnView = itemView.findViewById<android.widget.ImageButton>(R.id.btnView)
+            val btnDelete = itemView.findViewById<android.widget.ImageButton>(R.id.btnDelete)
 
-            tvAzimuth.text = "${String.format("%.1f", reading.azimuth)}°"
+            tvAzimuth.text = "🧭 ${String.format("%.1f", reading.azimuth)}°"
 
             val libraryLoc = libraryManager.isLocationInLibrary(reading.lat, reading.lon)
             if (libraryLoc != null) {
                 btnSave.visibility = View.GONE
-                tvDesc.visibility = View.VISIBLE
-                tvDesc.text = libraryLoc.desc ?: ""
+                llPointDesc.visibility = View.VISIBLE
+                tvDesc.text = libraryLoc.desc ?: "No Description"
+                tvCoords.text = "${String.format("%.5f", libraryLoc.lat)}, ${String.format("%.5f", libraryLoc.lon)}"
+
+                ivThumb.setImageDrawable(null)
+                ivThumb.visibility = View.GONE
+                libraryLoc.img?.let { imgStr ->
+                    if (imgStr.startsWith("data:image")) {
+                        try {
+                            val base64Str = imgStr.substringAfter("base64,")
+                            val decodedBytes = android.util.Base64.decode(base64Str, android.util.Base64.DEFAULT)
+                            val bitmap = android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                            ivThumb.setImageBitmap(bitmap)
+                            ivThumb.visibility = View.VISIBLE
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
             } else {
                 btnSave.visibility = View.VISIBLE
-                tvDesc.visibility = View.GONE
+                llPointDesc.visibility = View.GONE
+                ivThumb.visibility = View.GONE
             }
 
             btnSave.setOnClickListener {
@@ -1089,6 +1112,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
         // Disable editing if we don't have a location
         val hasLocation = currentLat != null && currentLon != null
+        llMagnetic.visibility = if (hasLocation) View.VISIBLE else View.GONE
+        updateBackAzimuthDisplay() // ensures declination UI updates when location updates via onResume
         flSelectArea.isEnabled = hasLocation
         flSelectArea.alpha = if (hasLocation) 1.0f else 0.5f
         tvSelectReadingText.visibility = if (hasLocation) View.VISIBLE else View.INVISIBLE

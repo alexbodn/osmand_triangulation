@@ -799,42 +799,36 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             tvAzimuth.text = "🧭 ${String.format("%.1f", reading.azimuth)}°"
 
             val libraryLoc = libraryManager.isLocationInLibrary(reading.lat, reading.lon)
-            if (libraryLoc != null || !reading.tempDesc.isNullOrBlank()) {
-                llPointDesc.visibility = View.VISIBLE
-                spacer.visibility = View.GONE
+            llPointDesc.visibility = View.VISIBLE
+            spacer.visibility = View.GONE
 
-                if (libraryLoc != null) {
-                    btnSave.visibility = View.GONE
-                    tvDesc.text = libraryLoc.desc ?: "No Description"
-                    tvCoords.text = "${String.format("%.5f", libraryLoc.lat)}, ${String.format("%.5f", libraryLoc.lon)}"
+            if (libraryLoc != null) {
+                // Point exists in library. Show save button to allow explicitly saving active changes to library.
+                btnSave.visibility = View.VISIBLE
+                tvDesc.text = reading.tempDesc ?: libraryLoc.desc ?: ""
+                tvCoords.text = "${String.format("%.5f", libraryLoc.lat)}, ${String.format("%.5f", libraryLoc.lon)}"
 
-                    ivThumb.setImageDrawable(null)
-                    ivThumb.visibility = View.GONE
-                    libraryLoc.img?.let { imgStr ->
-                        if (imgStr.startsWith("data:image")) {
-                            try {
-                                val base64Str = imgStr.substringAfter("base64,")
-                                val decodedBytes = android.util.Base64.decode(base64Str, android.util.Base64.DEFAULT)
-                                val bitmap = android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-                                ivThumb.setImageBitmap(bitmap)
-                                ivThumb.visibility = View.VISIBLE
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                            }
+                ivThumb.setImageDrawable(null)
+                ivThumb.visibility = View.GONE
+                libraryLoc.img?.let { imgStr ->
+                    if (imgStr.startsWith("data:image")) {
+                        try {
+                            val base64Str = imgStr.substringAfter("base64,")
+                            val decodedBytes = android.util.Base64.decode(base64Str, android.util.Base64.DEFAULT)
+                            val bitmap = android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                            ivThumb.setImageBitmap(bitmap)
+                            ivThumb.visibility = View.VISIBLE
+                        } catch (e: Exception) {
+                            e.printStackTrace()
                         }
                     }
-                } else {
-                    // Not in library, but has a temporary description from intent or previous edit
-                    btnSave.visibility = View.VISIBLE
-                    tvDesc.text = reading.tempDesc
-                    tvCoords.text = "${String.format("%.5f", reading.lat)}, ${String.format("%.5f", reading.lon)}"
-                    ivThumb.visibility = View.GONE
                 }
             } else {
+                // Not in library, could have temp desc or be empty
                 btnSave.visibility = View.VISIBLE
-                llPointDesc.visibility = View.GONE
+                tvDesc.text = reading.tempDesc ?: ""
+                tvCoords.text = "${String.format("%.5f", reading.lat)}, ${String.format("%.5f", reading.lon)}"
                 ivThumb.visibility = View.GONE
-                spacer.visibility = View.VISIBLE
             }
 
             btnEdit.setOnClickListener {
@@ -844,22 +838,16 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 val dialogView = layoutInflater.inflate(R.layout.dialog_edit_desc, null)
                 val etDesc = dialogView.findViewById<android.widget.EditText>(R.id.etEditDesc)
 
-                val currentDesc = if (libraryLoc != null) libraryLoc.desc else reading.tempDesc
+                val currentDesc = reading.tempDesc ?: libraryLoc?.desc
                 if (currentDesc != null) etDesc.setText(currentDesc)
 
                 builder.setView(dialogView)
                 builder.setPositiveButton("Save") { _, _ ->
-                    val newDesc = etDesc.text.toString().takeIf { it.isNotBlank() } ?: "No Description"
+                    val newDesc = etDesc.text.toString().takeIf { it.isNotBlank() }
 
-                    if (libraryLoc != null) {
-                        // User wants to edit an existing library location from the active points view
-                        libraryManager.editLocationDescription(reading.lat, reading.lon, libraryLoc.desc, newDesc)
-                        // Note: we don't necessarily update tempDesc here since library takes precedence
-                    } else {
-                        // Just an active point with a temp description
-                        selectedLocations[i] = reading.copy(tempDesc = newDesc)
-                        saveState()
-                    }
+                    // Edit always updates the active point copy only.
+                    selectedLocations[i] = reading.copy(tempDesc = newDesc)
+                    saveState()
                     updatePointsList()
                 }
                 builder.setNegativeButton("Cancel", null)

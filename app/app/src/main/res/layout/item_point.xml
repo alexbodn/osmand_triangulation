@@ -7,6 +7,14 @@
     android:paddingBottom="8dp"
     android:gravity="center_vertical">
 
+    <TextView
+        android:id="@+id/tvPointAzimuth"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:textAlignment="center"
+        android:textSize="16sp" />
+
     <ImageView
         android:id="@+id/ivLocationThumb"
         android:layout_width="64dp"
@@ -18,35 +26,49 @@
 
     <LinearLayout
         android:id="@+id/llPointDesc"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
+        android:layout_weight="1"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
         android:orientation="vertical"
         android:visibility="gone">
 
-        <TextView
-            android:id="@+id/tvPointDesc"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textStyle="bold"
-            android:textSize="16sp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvPointDesc"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <ImageButton
+                android:id="@+id/btnEdit"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_edit"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Edit description" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvPointCoords"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="12sp"
             android:textColor="#666666" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tvPointAzimuth"
+    <Space
+        android:id="@+id/spacer"
         android:layout_width="0dp"
-        android:layout_weight="1"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:textAlignment="center"
-        android:textSize="16sp" />
+        android:layout_height="match_parent"
+        android:layout_weight="1" />
 
     <ImageButton
         android:id="@+id/btnSave"

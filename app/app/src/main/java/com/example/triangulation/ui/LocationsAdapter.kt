@@ -17,14 +17,16 @@ class LocationsAdapter(
     private var locations: List<LibraryLocation>,
     private val onPointClick: (LibraryLocation) -> Unit,
     private val onShowClick: (LibraryLocation) -> Unit,
-    private val onDeleteClick: (LibraryLocation) -> Unit
+    private val onDeleteClick: (LibraryLocation) -> Unit,
+    private val onEditClick: (LibraryLocation) -> Unit
 ) : RecyclerView.Adapter<LocationsAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val ivThumb: ImageView = view.findViewById(R.id.ivLocationThumb)
         val tvDesc: TextView = view.findViewById(R.id.tvLocationDesc)
         val tvCoords: TextView = view.findViewById(R.id.tvLocationCoords)
-        val btnPoint: Button = view.findViewById(R.id.btnPoint)
+        val btnEdit: ImageButton = view.findViewById(R.id.btnEdit)
+        val btnPoint: ImageButton = view.findViewById(R.id.btnPoint)
         val btnShow: ImageButton = view.findViewById(R.id.btnShow)
         val btnDelete: ImageButton = view.findViewById(R.id.btnDelete)
     }
@@ -56,6 +58,7 @@ class LocationsAdapter(
             }
         }
 
+        holder.btnEdit.setOnClickListener { onEditClick(loc) }
         holder.btnPoint.setOnClickListener { onPointClick(loc) }
         holder.btnShow.setOnClickListener { onShowClick(loc) }
         holder.btnDelete.setOnClickListener { onDeleteClick(loc) }

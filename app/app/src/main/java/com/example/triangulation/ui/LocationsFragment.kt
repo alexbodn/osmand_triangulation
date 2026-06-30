@@ -98,6 +98,23 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                 // Update Home tab active list if needed? It pulls automatically on next resume/refresh if we use shared prefs or DB, but here they are disjoint.
                 // The requirements say: "Deleting an active location from the Home tab should remove it from the active list and map, but NOT delete it from the library."
                 // "deleting a location from the lib should not remove it from active. just set the save button in active for the location."
+            },
+            onEditClick = { loc ->
+                val builder = android.app.AlertDialog.Builder(requireContext())
+                builder.setTitle("Edit Location Description")
+
+                val dialogView = layoutInflater.inflate(R.layout.dialog_edit_desc, null)
+                val etDesc = dialogView.findViewById<android.widget.EditText>(R.id.etEditDesc)
+                if (loc.desc != null) etDesc.setText(loc.desc)
+
+                builder.setView(dialogView)
+                builder.setPositiveButton("Save") { _, _ ->
+                    val newDesc = etDesc.text.toString().takeIf { it.isNotBlank() } ?: "No Description"
+                    libraryManager.editLocationDescription(loc.lat, loc.lon, loc.desc, newDesc)
+                    loadData()
+                }
+                builder.setNegativeButton("Cancel", null)
+                builder.show()
             }
         )
 

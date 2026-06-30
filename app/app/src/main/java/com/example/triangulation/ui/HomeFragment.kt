@@ -700,6 +700,12 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             if (lines.isNotEmpty() && lines[0].isNotBlank() && !lines[0].startsWith("Location:")) {
                 return lines[0].trim()
             }
+        } else if (rawText.isNotBlank()) {
+            // Also attempt to use the text if it's purely a description before a coordinate pair
+            val lines = rawText.split("\n")
+            if (lines.isNotEmpty() && lines[0].isNotBlank() && !lines[0].startsWith("geo:") && !lines[0].startsWith("lat=")) {
+                return lines[0].trim()
+            }
         }
         return null
     }
@@ -784,6 +790,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             val tvCoords = itemView.findViewById<TextView>(R.id.tvPointCoords)
             val llPointDesc = itemView.findViewById<android.widget.LinearLayout>(R.id.llPointDesc)
             val ivThumb = itemView.findViewById<ImageView>(R.id.ivLocationThumb)
+            val btnEdit = itemView.findViewById<android.widget.ImageButton>(R.id.btnEdit)
+            val spacer = itemView.findViewById<android.widget.Space>(R.id.spacer)
             val btnSave = itemView.findViewById<android.widget.ImageButton>(R.id.btnSave)
             val btnView = itemView.findViewById<android.widget.ImageButton>(R.id.btnView)
             val btnDelete = itemView.findViewById<android.widget.ImageButton>(R.id.btnDelete)
@@ -791,31 +799,71 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             tvAzimuth.text = "🧭 ${String.format("%.1f", reading.azimuth)}°"
 
             val libraryLoc = libraryManager.isLocationInLibrary(reading.lat, reading.lon)
-            if (libraryLoc != null) {
-                btnSave.visibility = View.GONE
+            if (libraryLoc != null || !reading.tempDesc.isNullOrBlank()) {
                 llPointDesc.visibility = View.VISIBLE
-                tvDesc.text = libraryLoc.desc ?: "No Description"
-                tvCoords.text = "${String.format("%.5f", libraryLoc.lat)}, ${String.format("%.5f", libraryLoc.lon)}"
+                spacer.visibility = View.GONE
 
-                ivThumb.setImageDrawable(null)
-                ivThumb.visibility = View.GONE
-                libraryLoc.img?.let { imgStr ->
-                    if (imgStr.startsWith("data:image")) {
-                        try {
-                            val base64Str = imgStr.substringAfter("base64,")
-                            val decodedBytes = android.util.Base64.decode(base64Str, android.util.Base64.DEFAULT)
-                            val bitmap = android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-                            ivThumb.setImageBitmap(bitmap)
-                            ivThumb.visibility = View.VISIBLE
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                if (libraryLoc != null) {
+                    btnSave.visibility = View.GONE
+                    tvDesc.text = libraryLoc.desc ?: "No Description"
+                    tvCoords.text = "${String.format("%.5f", libraryLoc.lat)}, ${String.format("%.5f", libraryLoc.lon)}"
+
+                    ivThumb.setImageDrawable(null)
+                    ivThumb.visibility = View.GONE
+                    libraryLoc.img?.let { imgStr ->
+                        if (imgStr.startsWith("data:image")) {
+                            try {
+                                val base64Str = imgStr.substringAfter("base64,")
+                                val decodedBytes = android.util.Base64.decode(base64Str, android.util.Base64.DEFAULT)
+                                val bitmap = android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                                ivThumb.setImageBitmap(bitmap)
+                                ivThumb.visibility = View.VISIBLE
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
                     }
+                } else {
+                    // Not in library, but has a temporary description from intent or previous edit
+                    btnSave.visibility = View.VISIBLE
+                    tvDesc.text = reading.tempDesc
+                    tvCoords.text = "${String.format("%.5f", reading.lat)}, ${String.format("%.5f", reading.lon)}"
+                    ivThumb.visibility = View.GONE
                 }
             } else {
                 btnSave.visibility = View.VISIBLE
                 llPointDesc.visibility = View.GONE
                 ivThumb.visibility = View.GONE
+                spacer.visibility = View.VISIBLE
+            }
+
+            btnEdit.setOnClickListener {
+                val builder = android.app.AlertDialog.Builder(requireContext())
+                builder.setTitle("Edit Description")
+
+                val dialogView = layoutInflater.inflate(R.layout.dialog_edit_desc, null)
+                val etDesc = dialogView.findViewById<android.widget.EditText>(R.id.etEditDesc)
+
+                val currentDesc = if (libraryLoc != null) libraryLoc.desc else reading.tempDesc
+                if (currentDesc != null) etDesc.setText(currentDesc)
+
+                builder.setView(dialogView)
+                builder.setPositiveButton("Save") { _, _ ->
+                    val newDesc = etDesc.text.toString().takeIf { it.isNotBlank() } ?: "No Description"
+
+                    if (libraryLoc != null) {
+                        // User wants to edit an existing library location from the active points view
+                        libraryManager.editLocationDescription(reading.lat, reading.lon, libraryLoc.desc, newDesc)
+                        // Note: we don't necessarily update tempDesc here since library takes precedence
+                    } else {
+                        // Just an active point with a temp description
+                        selectedLocations[i] = reading.copy(tempDesc = newDesc)
+                        saveState()
+                    }
+                    updatePointsList()
+                }
+                builder.setNegativeButton("Cancel", null)
+                builder.show()
             }
 
             btnSave.setOnClickListener {

@@ -20,12 +20,28 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tvLocationDesc"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textStyle="bold"
-            android:textSize="16sp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvLocationDesc"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <ImageButton
+                android:id="@+id/btnEdit"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_edit"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Edit description" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvLocationCoords"
@@ -35,13 +51,13 @@
             android:textColor="#666666" />
     </LinearLayout>
 
-    <Button
+    <ImageButton
         android:id="@+id/btnPoint"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:text="Point"
-        style="?android:attr/borderlessButtonStyle" />
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_compass_bolt"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Point to location" />
 
     <ImageButton
         android:id="@+id/btnShow"

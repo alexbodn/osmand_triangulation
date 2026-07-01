@@ -55,7 +55,7 @@
         android:id="@+id/btnPoint"
         android:layout_width="48dp"
         android:layout_height="48dp"
-        android:src="@drawable/ic_compass_bolt"
+        android:src="@drawable/ic_compass"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="Point to location" />
 

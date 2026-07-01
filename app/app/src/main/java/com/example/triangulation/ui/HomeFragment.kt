@@ -45,6 +45,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private lateinit var etAzimuth: EditText
     private lateinit var tvBackAzimuth: TextView
     private lateinit var llMagnetic: android.widget.LinearLayout
+    private lateinit var llAzimuth: android.widget.LinearLayout
+    private lateinit var llArrowContainer: android.widget.LinearLayout
     private lateinit var tvDeclination: TextView
     private lateinit var flSelectArea: android.widget.FrameLayout
     private lateinit var tvSelectReadingText: TextView
@@ -88,6 +90,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             etAzimuth = view.findViewById(R.id.etAzimuth)
             tvBackAzimuth = view.findViewById(R.id.tvBackAzimuth)
             llMagnetic = view.findViewById(R.id.llMagnetic)
+            llAzimuth = view.findViewById(R.id.llAzimuth)
+            llArrowContainer = view.findViewById(R.id.llArrowContainer)
             tvDeclination = view.findViewById(R.id.tvDeclination)
             flSelectArea = view.findViewById(R.id.flSelectArea)
             tvSelectReadingText = view.findViewById(R.id.tvSelectReadingText)
@@ -538,7 +542,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         if (!latExtra.isNaN() && !lonExtra.isNaN()) {
             currentLat = latExtra
             currentLon = lonExtra
-            rawReceivedParameter = "lat=$latExtra, lon=$lonExtra"
+            val descExtra = intent?.getStringExtra("desc")
+            rawReceivedParameter = if (!descExtra.isNullOrBlank()) descExtra else "lat=$latExtra, lon=$lonExtra"
             locationParsed = true
         }
 
@@ -799,12 +804,22 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             tvAzimuth.text = "🧭 ${String.format("%.1f", reading.azimuth)}°"
 
             val libraryLoc = libraryManager.isLocationInLibrary(reading.lat, reading.lon)
+
+            tvAzimuth.setOnClickListener {
+                val intent = Intent(requireContext(), com.example.triangulation.MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                intent.putExtra("lat", reading.lat)
+                intent.putExtra("lon", reading.lon)
+                intent.putExtra("desc", reading.tempDesc ?: libraryLoc?.desc)
+                startActivity(intent)
+            }
             llPointDesc.visibility = View.VISIBLE
             spacer.visibility = View.GONE
 
             if (libraryLoc != null) {
                 // Point exists in library. Show save button to allow explicitly saving active changes to library.
                 btnSave.visibility = View.VISIBLE
+                btnSave.setImageResource(R.drawable.ic_save)
                 tvDesc.text = reading.tempDesc ?: libraryLoc.desc ?: ""
                 tvCoords.text = "${String.format("%.5f", libraryLoc.lat)}, ${String.format("%.5f", libraryLoc.lon)}"
 
@@ -826,6 +841,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             } else {
                 // Not in library, could have temp desc or be empty
                 btnSave.visibility = View.VISIBLE
+                btnSave.setImageResource(R.drawable.ic_library_add)
                 tvDesc.text = reading.tempDesc ?: ""
                 tvCoords.text = "${String.format("%.5f", reading.lat)}, ${String.format("%.5f", reading.lon)}"
                 ivThumb.visibility = View.GONE
@@ -1148,7 +1164,10 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
         // Disable editing if we don't have a location
         val hasLocation = currentLat != null && currentLon != null
-        llMagnetic.visibility = if (hasLocation) View.VISIBLE else View.GONE
+        val bottomVisibility = if (hasLocation) View.VISIBLE else View.GONE
+        llMagnetic.visibility = bottomVisibility
+        llAzimuth.visibility = bottomVisibility
+        llArrowContainer.visibility = bottomVisibility
         updateBackAzimuthDisplay() // ensures declination UI updates when location updates via onResume
         flSelectArea.isEnabled = hasLocation
         flSelectArea.alpha = if (hasLocation) 1.0f else 0.5f

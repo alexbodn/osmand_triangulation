@@ -468,6 +468,9 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             obj.put("lon", reading.lon)
             obj.put("azimuth", reading.azimuth.toDouble())
             obj.put("backAzimuth", reading.backAzimuth.toDouble())
+            if (reading.tempDesc != null) {
+                obj.put("tempDesc", reading.tempDesc)
+            }
             jsonArray.put(obj)
         }
         sharedPrefs.edit().putString("locations", jsonArray.toString()).apply()
@@ -495,7 +498,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             obj.getDouble("lat"),
                             obj.getDouble("lon"),
                             obj.getDouble("azimuth").toFloat(),
-                            obj.getDouble("backAzimuth").toFloat()
+                            obj.getDouble("backAzimuth").toFloat(),
+                            if (obj.has("tempDesc")) obj.getString("tempDesc") else null
                         )
                     )
                 }

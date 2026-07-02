@@ -685,6 +685,14 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
 
         if (locationParsed) {
+            // Check for explicit azimuth extra from the active locations re-activation
+            val azimuthExtra = intent?.getFloatExtra("azimuth", Float.NaN)
+            if (azimuthExtra != null && !azimuthExtra.isNaN()) {
+                cbManualAzimuth.isChecked = true
+                etAzimuth.isEnabled = true
+                etAzimuth.setText(String.format("%.1f", azimuthExtra))
+            }
+
             // Switch to Home tab
             (activity as? com.example.triangulation.MainActivity)?.let { mainActivity ->
                 val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
@@ -692,8 +700,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             intent?.removeExtra("lat")
-
             intent?.removeExtra("lon")
+            intent?.removeExtra("azimuth")
             intent?.removeExtra(Intent.EXTRA_TEXT)
             intent?.data = null
             intent?.action = null
@@ -815,6 +823,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 intent.putExtra("lat", reading.lat)
                 intent.putExtra("lon", reading.lon)
                 intent.putExtra("desc", reading.tempDesc ?: libraryLoc?.desc)
+                intent.putExtra("azimuth", reading.azimuth)
                 startActivity(intent)
             }
             llPointDesc.visibility = View.VISIBLE

@@ -111,9 +111,19 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 } else false
             }
 
+            etAzimuth.setOnFocusChangeListener { _, hasFocus ->
+                val visibility = if (hasFocus) View.GONE else View.VISIBLE
+                view.findViewById<View>(R.id.llDistance).visibility = visibility
+                view.findViewById<View>(R.id.llPointsHeader).visibility = visibility
+                view.findViewById<View>(R.id.svPoints).visibility = visibility
+            }
+
             cbManualAzimuth.setOnCheckedChangeListener { _, isChecked ->
-                val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
-                sharedPrefs.edit().putBoolean("isManualAzimuthChecked", isChecked).apply()
+                // Check if we are intentionally suppressing the save (e.g. from intent)
+                if (cbManualAzimuth.tag != "suppress_save") {
+                    val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+                    sharedPrefs.edit().putBoolean("isManualAzimuthChecked", isChecked).apply()
+                }
 
                 etAzimuth.isEnabled = isChecked
                 if (!isChecked) {
@@ -124,7 +134,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             etDistance.setOnEditorActionListener { v, actionId, _ ->
-                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE || actionId == android.view.inputmethod.EditorInfo.IME_ACTION_NEXT) {
                     v.clearFocus()
                     val imm = requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                     imm.hideSoftInputFromWindow(v.windowToken, 0)
@@ -688,7 +698,9 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             // Check for explicit azimuth extra from the active locations re-activation
             val azimuthExtra = intent?.getFloatExtra("azimuth", Float.NaN)
             if (azimuthExtra != null && !azimuthExtra.isNaN()) {
+                cbManualAzimuth.tag = "suppress_save"
                 cbManualAzimuth.isChecked = true
+                cbManualAzimuth.tag = null
                 etAzimuth.isEnabled = true
                 etAzimuth.setText(String.format("%.1f", azimuthExtra))
             }

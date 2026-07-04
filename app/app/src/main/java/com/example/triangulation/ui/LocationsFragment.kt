@@ -105,7 +105,10 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
 
                 val dialogView = layoutInflater.inflate(R.layout.dialog_edit_desc, null)
                 val etDesc = dialogView.findViewById<android.widget.EditText>(R.id.etEditDesc)
-                if (loc.desc != null) etDesc.setText(loc.desc)
+                if (loc.desc != null) {
+                    etDesc.setText(loc.desc)
+                    etDesc.setSelection(loc.desc.length)
+                }
 
                 builder.setView(dialogView)
                 builder.setPositiveButton("Save") { _, _ ->
@@ -114,7 +117,11 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                     loadData()
                 }
                 builder.setNegativeButton("Cancel", null)
-                builder.show()
+
+                val dialog = builder.create()
+                dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
+                dialog.show()
+                etDesc.requestFocus()
             }
         )
 

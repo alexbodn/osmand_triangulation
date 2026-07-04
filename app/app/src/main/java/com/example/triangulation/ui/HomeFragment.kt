@@ -111,11 +111,13 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 } else false
             }
 
-            etAzimuth.setOnFocusChangeListener { _, hasFocus ->
-                val visibility = if (hasFocus) View.GONE else View.VISIBLE
+            com.example.triangulation.KeyboardUtils.addKeyboardVisibilityListener(view) { isKeyboardShowing ->
+                val isEditing = etAzimuth.hasFocus() || isKeyboardShowing
+                val visibility = if (isEditing) View.GONE else View.VISIBLE
                 view.findViewById<View>(R.id.llDistance).visibility = visibility
                 view.findViewById<View>(R.id.llPointsHeader).visibility = visibility
                 view.findViewById<View>(R.id.svPoints).visibility = visibility
+                view.findViewById<View>(R.id.llMagnetic).visibility = visibility
             }
 
             cbManualAzimuth.setOnCheckedChangeListener { _, isChecked ->
@@ -880,7 +882,10 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 val etDesc = dialogView.findViewById<android.widget.EditText>(R.id.etEditDesc)
 
                 val currentDesc = reading.tempDesc ?: libraryLoc?.desc
-                if (currentDesc != null) etDesc.setText(currentDesc)
+                if (currentDesc != null) {
+                    etDesc.setText(currentDesc)
+                    etDesc.setSelection(currentDesc.length)
+                }
 
                 builder.setView(dialogView)
                 builder.setPositiveButton("Save") { _, _ ->
@@ -892,7 +897,11 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     updatePointsList()
                 }
                 builder.setNegativeButton("Cancel", null)
-                builder.show()
+
+                val dialog = builder.create()
+                dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
+                dialog.show()
+                etDesc.requestFocus()
             }
 
             btnSave.setOnClickListener {

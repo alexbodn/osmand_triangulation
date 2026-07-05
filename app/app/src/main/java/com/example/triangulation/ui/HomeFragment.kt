@@ -112,12 +112,22 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             com.example.triangulation.KeyboardUtils.addKeyboardVisibilityListener(view) { isKeyboardShowing ->
-                val isEditing = etAzimuth.hasFocus() || isKeyboardShowing
-                val visibility = if (isEditing) View.GONE else View.VISIBLE
-                view.findViewById<View>(R.id.llDistance).visibility = visibility
-                view.findViewById<View>(R.id.llPointsHeader).visibility = visibility
-                view.findViewById<View>(R.id.svPoints).visibility = visibility
-                view.findViewById<View>(R.id.llMagnetic).visibility = visibility
+                if (isKeyboardShowing) {
+                    view.findViewById<View>(R.id.llDistance).visibility = View.GONE
+                    view.findViewById<View>(R.id.llPointsHeader).visibility = View.GONE
+                    view.findViewById<View>(R.id.svPoints).visibility = View.GONE
+                    view.findViewById<View>(R.id.llMagnetic).visibility = View.GONE
+                } else {
+                    view.findViewById<View>(R.id.llDistance).visibility = View.VISIBLE
+                    view.findViewById<View>(R.id.llPointsHeader).visibility = View.VISIBLE
+                    view.findViewById<View>(R.id.svPoints).visibility = View.VISIBLE
+
+                    val hasLocation = currentLat != null && currentLon != null
+                    view.findViewById<View>(R.id.llMagnetic).visibility = if (hasLocation) View.VISIBLE else View.GONE
+
+                    etAzimuth.clearFocus()
+                    etDistance.clearFocus()
+                }
             }
 
             cbManualAzimuth.setOnCheckedChangeListener { _, isChecked ->
@@ -205,7 +215,14 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     }
 
                     val backAzimuth = (azimuthToUse + 180) % 360
-                    selectedLocations.add(Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth, rawReceivedParameter?.let { extractDescription(it) }))
+                    val newReading = Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth, rawReceivedParameter?.let { extractDescription(it) })
+
+                    val existingIndex = selectedLocations.indexOfFirst { it.lat == currentLat && it.lon == currentLon }
+                    if (existingIndex != -1) {
+                        selectedLocations[existingIndex] = newReading
+                    } else {
+                        selectedLocations.add(newReading)
+                    }
 
                     // Consume the location parameters so they are used only once
                     currentLat = null
@@ -832,13 +849,23 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             val libraryLoc = libraryManager.isLocationInLibrary(reading.lat, reading.lon)
 
             tvAzimuth.setOnClickListener {
-                val intent = Intent(requireContext(), com.example.triangulation.MainActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                intent.putExtra("lat", reading.lat)
-                intent.putExtra("lon", reading.lon)
-                intent.putExtra("desc", reading.tempDesc ?: libraryLoc?.desc)
-                intent.putExtra("azimuth", reading.azimuth)
-                startActivity(intent)
+                currentLat = reading.lat
+                currentLon = reading.lon
+                rawReceivedParameter = reading.tempDesc ?: libraryLoc?.desc
+
+                cbManualAzimuth.tag = "suppress_save"
+                cbManualAzimuth.isChecked = true
+                cbManualAzimuth.tag = null
+
+                etAzimuth.isEnabled = true
+                etAzimuth.setText(String.format("%.1f", reading.azimuth))
+                etAzimuth.setSelection(etAzimuth.text.length)
+
+                refreshUIForCurrentLocation()
+
+                etAzimuth.requestFocus()
+                val imm = requireActivity().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.showSoftInput(etAzimuth, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
             }
             llPointDesc.visibility = View.VISIBLE
             spacer.visibility = View.GONE
@@ -1196,6 +1223,10 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             showOsmAndPluginAlert()
         }
 
+        refreshUIForCurrentLocation()
+    }
+
+    private fun refreshUIForCurrentLocation() {
         // Disable editing if we don't have a location
         val hasLocation = currentLat != null && currentLon != null
         val bottomVisibility = if (hasLocation) View.VISIBLE else View.GONE

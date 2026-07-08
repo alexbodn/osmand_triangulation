@@ -142,9 +142,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     etAzimuth.clearFocus()
                     val imm = requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                     imm.hideSoftInputFromWindow(etAzimuth.windowToken, 0)
-                } else if (cbManualAzimuth.tag != "suppress_save") {
-                    // Populate with current compass/displayed value when manually checked
-                    updateBackAzimuthDisplay(true)
                 }
             }
 

@@ -112,17 +112,17 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             com.example.triangulation.KeyboardUtils.addKeyboardVisibilityListener(view) { isKeyboardShowing ->
+                val hasLocation = currentLat != null && currentLon != null
                 if (isKeyboardShowing) {
                     view.findViewById<View>(R.id.llDistance).visibility = View.GONE
                     view.findViewById<View>(R.id.llPointsHeader).visibility = View.GONE
                     view.findViewById<View>(R.id.svPoints).visibility = View.GONE
-                    view.findViewById<View>(R.id.llMagnetic).visibility = View.GONE
+                    view.findViewById<View>(R.id.llMagnetic).visibility = if (hasLocation) View.VISIBLE else View.GONE
                 } else {
                     view.findViewById<View>(R.id.llDistance).visibility = View.VISIBLE
                     view.findViewById<View>(R.id.llPointsHeader).visibility = View.VISIBLE
                     view.findViewById<View>(R.id.svPoints).visibility = View.VISIBLE
 
-                    val hasLocation = currentLat != null && currentLon != null
                     view.findViewById<View>(R.id.llMagnetic).visibility = if (hasLocation) View.VISIBLE else View.GONE
 
                     etAzimuth.clearFocus()
@@ -232,6 +232,15 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     saveState()
                     updatePointsList()
                     Toast.makeText(requireContext(), "Reading saved. Drawing silently on Map...", Toast.LENGTH_SHORT).show()
+
+                    // Restore the manual default if it was temporarily forced true during edit
+                    val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+                    val defaultManual = sharedPrefs.getBoolean("isManualAzimuthChecked", false)
+                    if (cbManualAzimuth.isChecked != defaultManual) {
+                        cbManualAzimuth.tag = "suppress_save"
+                        cbManualAzimuth.isChecked = defaultManual
+                        cbManualAzimuth.tag = null
+                    }
 
                     // Update UI explicitly here since we just nullified the variables
                     flSelectArea.isEnabled = false
@@ -857,8 +866,18 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 cbManualAzimuth.isChecked = true
                 cbManualAzimuth.tag = null
 
+                // Calculate declination-aware initialized value
+                val declination = calculateCurrentDeclination()
+                var baseAzimuthToUse = reading.azimuth - declination
+                if (cbMagnetic.isChecked) {
+                    baseAzimuthToUse += declination
+                }
+                // Normalize 0-360
+                if (baseAzimuthToUse >= 360f) baseAzimuthToUse -= 360f
+                if (baseAzimuthToUse < 0f) baseAzimuthToUse += 360f
+
                 etAzimuth.isEnabled = true
-                etAzimuth.setText(String.format("%.1f", reading.azimuth))
+                etAzimuth.setText(String.format("%.1f", baseAzimuthToUse))
                 etAzimuth.setSelection(etAzimuth.text.length)
 
                 refreshUIForCurrentLocation()

@@ -866,23 +866,25 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 cbManualAzimuth.isChecked = true
                 cbManualAzimuth.tag = null
 
-                // Calculate declination-aware initialized value
+                // Set the underlying base azimuth so updateBackAzimuthDisplay doesn't overwrite it with sensor data
                 val declination = calculateCurrentDeclination()
-                var baseAzimuthToUse = reading.azimuth - declination
-                if (cbMagnetic.isChecked) {
-                    baseAzimuthToUse += declination
-                }
+                var newBaseAzimuth = reading.azimuth - declination
+
                 // Normalize 0-360
-                if (baseAzimuthToUse >= 360f) baseAzimuthToUse -= 360f
-                if (baseAzimuthToUse < 0f) baseAzimuthToUse += 360f
+                if (newBaseAzimuth >= 360f) newBaseAzimuth -= 360f
+                if (newBaseAzimuth < 0f) newBaseAzimuth += 360f
+
+                baseAzimuth = newBaseAzimuth
 
                 etAzimuth.isEnabled = true
-                etAzimuth.setText(String.format("%.1f", baseAzimuthToUse))
-                etAzimuth.setSelection(etAzimuth.text.length)
 
+                // Calling this forces the UI to process the new baseAzimuth (and apply the declination checkbox accurately)
+                updateBackAzimuthDisplay(true)
                 refreshUIForCurrentLocation()
 
+                etAzimuth.setSelection(etAzimuth.text.length)
                 etAzimuth.requestFocus()
+
                 val imm = requireActivity().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                 imm.showSoftInput(etAzimuth, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
             }

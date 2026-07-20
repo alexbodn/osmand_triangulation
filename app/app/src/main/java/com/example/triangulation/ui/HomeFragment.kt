@@ -729,8 +729,34 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 cbManualAzimuth.tag = "suppress_save"
                 cbManualAzimuth.isChecked = true
                 cbManualAzimuth.tag = null
+
+                // When re-activating from intent, treat the provided azimuth as the literal azimuth,
+                // and reverse-calculate the sensor "baseAzimuth" under the hood so the UI doesn't warp it.
+                val declination = calculateCurrentDeclination()
+                var newBaseAzimuth = azimuthExtra - declination
+                if (newBaseAzimuth >= 360f) newBaseAzimuth -= 360f
+                if (newBaseAzimuth < 0f) newBaseAzimuth += 360f
+
+                baseAzimuth = newBaseAzimuth
+
                 etAzimuth.isEnabled = true
-                etAzimuth.setText(String.format("%.1f", azimuthExtra))
+                updateBackAzimuthDisplay(true)
+            } else {
+                // When sharing a NEW location with the app, ensure we start taking live sensor data immediately
+                val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+                val isManualDefault = sharedPrefs.getBoolean("isManualAzimuthChecked", false)
+
+                cbManualAzimuth.tag = "suppress_save"
+                cbManualAzimuth.isChecked = isManualDefault
+                cbManualAzimuth.tag = null
+
+                etAzimuth.isEnabled = isManualDefault
+                if (isManualDefault) {
+                    updateBackAzimuthDisplay(true)
+                } else {
+                    etAzimuth.text.clear()
+                    etAzimuth.clearFocus()
+                }
             }
 
             // Switch to Home tab

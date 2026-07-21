@@ -1311,8 +1311,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
-        if (cbManualAzimuth.isChecked) return // Don't update from sensor if manual input is enabled
-
         if (event?.sensor?.type == Sensor.TYPE_ROTATION_VECTOR) {
             val rotationMatrix = FloatArray(9)
             SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
@@ -1325,8 +1323,13 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 azimuthInDegrees += 360f
             }
 
+            // Always track the underlying hardware compass
             baseAzimuth = azimuthInDegrees
-            updateBackAzimuthDisplay(false)
+
+            // Only continuously push UI updates if not in manual edit mode
+            if (!cbManualAzimuth.isChecked) {
+                updateBackAzimuthDisplay(false)
+            }
         }
     }
 

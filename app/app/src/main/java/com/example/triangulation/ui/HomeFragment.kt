@@ -58,6 +58,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private lateinit var llPointsContainer: android.widget.LinearLayout
 
     private var baseAzimuth = 0f // The raw or user-inputted azimuth BEFORE declination
+    private var pendingInitialSensorUpdate = false
     private var selectedLocations = mutableListOf<Reading>()
 
     data class Reading(val lat: Double, val lon: Double, val azimuth: Float, val backAzimuth: Float, val tempDesc: String? = null)
@@ -750,10 +751,12 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 cbManualAzimuth.isChecked = isManualDefault
                 cbManualAzimuth.tag = null
 
-                etAzimuth.isEnabled = isManualDefault
                 if (isManualDefault) {
-                    updateBackAzimuthDisplay(true)
+                    // Lock editor initially until the sensor catches up and populates the field
+                    etAzimuth.isEnabled = false
+                    pendingInitialSensorUpdate = true
                 } else {
+                    etAzimuth.isEnabled = false
                     etAzimuth.text.clear()
                     etAzimuth.clearFocus()
                 }
@@ -1325,6 +1328,13 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
             // Always track the underlying hardware compass
             baseAzimuth = azimuthInDegrees
+
+            // Handle deferred UI update for new intents with manual mode defaulted ON
+            if (pendingInitialSensorUpdate) {
+                pendingInitialSensorUpdate = false
+                updateBackAzimuthDisplay(true)
+                etAzimuth.isEnabled = true
+            }
 
             // Only continuously push UI updates if not in manual edit mode
             if (!cbManualAzimuth.isChecked) {

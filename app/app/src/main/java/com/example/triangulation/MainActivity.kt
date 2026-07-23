@@ -21,10 +21,12 @@ class MainActivity : AppCompatActivity() {
         val adapter = ViewPagerAdapter(this)
         binding.viewPager.adapter = adapter
 
+
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
             tab.text = when (position) {
                 0 -> "Home"
                 1 -> "Locations"
+                2 -> "Settings"
                 else -> null
             }
         }.attach()

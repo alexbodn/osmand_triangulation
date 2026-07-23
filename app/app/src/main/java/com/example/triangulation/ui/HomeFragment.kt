@@ -53,7 +53,10 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private lateinit var btnIntersection: Button
     private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
-    private lateinit var etDistance: EditText
+
+    private lateinit var ivAccuracyIcon: android.widget.ImageView
+    private lateinit var tvAccuracyText: android.widget.TextView
+    private var lastAccuracy = SensorManager.SENSOR_STATUS_UNRELIABLE
     private lateinit var tvListHeader: TextView
     private lateinit var llPointsContainer: android.widget.LinearLayout
 
@@ -99,7 +102,9 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             btnIntersection = view.findViewById(R.id.btnIntersection)
             cbMagnetic = view.findViewById(R.id.cbMagnetic)
             cbManualAzimuth = view.findViewById(R.id.cbManualAzimuth)
-            etDistance = view.findViewById(R.id.etDistance)
+
+            ivAccuracyIcon = view.findViewById(R.id.ivAccuracyIcon)
+            tvAccuracyText = view.findViewById(R.id.tvAccuracyText)
             tvListHeader = view.findViewById(R.id.tvListHeader)
             llPointsContainer = view.findViewById(R.id.llPointsContainer)
 
@@ -115,19 +120,16 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             com.example.triangulation.KeyboardUtils.addKeyboardVisibilityListener(view) { isKeyboardShowing ->
                 val hasLocation = currentLat != null && currentLon != null
                 if (isKeyboardShowing) {
-                    view.findViewById<View>(R.id.llDistance).visibility = View.GONE
                     view.findViewById<View>(R.id.llPointsHeader).visibility = View.GONE
                     view.findViewById<View>(R.id.svPoints).visibility = View.GONE
                     view.findViewById<View>(R.id.llMagnetic).visibility = if (hasLocation) View.VISIBLE else View.GONE
                 } else {
-                    view.findViewById<View>(R.id.llDistance).visibility = View.VISIBLE
                     view.findViewById<View>(R.id.llPointsHeader).visibility = View.VISIBLE
                     view.findViewById<View>(R.id.svPoints).visibility = View.VISIBLE
 
                     view.findViewById<View>(R.id.llMagnetic).visibility = if (hasLocation) View.VISIBLE else View.GONE
 
                     etAzimuth.clearFocus()
-                    etDistance.clearFocus()
                 }
             }
 
@@ -144,15 +146,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     val imm = requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                     imm.hideSoftInputFromWindow(etAzimuth.windowToken, 0)
                 }
-            }
-
-            etDistance.setOnEditorActionListener { v, actionId, _ ->
-                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE || actionId == android.view.inputmethod.EditorInfo.IME_ACTION_NEXT) {
-                    v.clearFocus()
-                    val imm = requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                    imm.hideSoftInputFromWindow(v.windowToken, 0)
-                    true
-                } else false
             }
 
             sensorManager = requireActivity().getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -205,7 +198,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 updateBackAzimuthDisplay(true)
             }
 
-            flSelectArea.setOnClickListener {
+            view.findViewById<android.widget.ImageView>(R.id.ivArrow).setOnClickListener {
                 if (currentLat != null && currentLon != null) {
                     var azimuthToUse = baseAzimuth
 
@@ -1199,11 +1192,13 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         gpxStr.append("  <trk>\n")
         gpxStr.append("    <name>Triangulation Lines</name>\n")
 
+
         var defaultDist = 3.0
         try {
-            val userDist = etDistance.text.toString().toDouble()
-            if (userDist > 0) defaultDist = userDist
+            val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+            defaultDist = sharedPrefs.getFloat("defaultDistance", 3.0f).toDouble()
         } catch (e: Exception) {}
+
 
         for (reading in selectedLocations) {
             gpxStr.append("    <trkseg>\n")
@@ -1343,6 +1338,35 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         }
     }
 
+
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+        if (sensor?.type == Sensor.TYPE_ROTATION_VECTOR) {
+            lastAccuracy = accuracy
+            updateAccuracyDisplay()
+        }
     }
+
+    private fun updateAccuracyDisplay() {
+        if (::ivAccuracyIcon.isInitialized && ::tvAccuracyText.isInitialized) {
+            when (lastAccuracy) {
+                SensorManager.SENSOR_STATUS_ACCURACY_HIGH -> {
+                    ivAccuracyIcon.setColorFilter(android.graphics.Color.GREEN)
+                    tvAccuracyText.text = "Accuracy: High"
+                }
+                SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM -> {
+                    ivAccuracyIcon.setColorFilter(android.graphics.Color.YELLOW)
+                    tvAccuracyText.text = "Accuracy: Medium"
+                }
+                SensorManager.SENSOR_STATUS_ACCURACY_LOW -> {
+                    ivAccuracyIcon.setColorFilter(android.graphics.Color.rgb(255, 165, 0))
+                    tvAccuracyText.text = "Accuracy: Low - please move phone in an 8 shape (♾️)"
+                }
+                else -> {
+                    ivAccuracyIcon.setColorFilter(android.graphics.Color.RED)
+                    tvAccuracyText.text = "Accuracy: Unreliable - please move phone in an 8 shape (♾️)"
+                }
+            }
+        }
+    }
+
 }

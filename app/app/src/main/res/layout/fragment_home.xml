@@ -7,40 +7,6 @@
     tools:context=".ui.HomeFragment">
 
     <LinearLayout
-        android:id="@+id/llDistance"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Default Line Length: "
-            android:textSize="16sp" />
-
-        <EditText
-            android:id="@+id/etDistance"
-            android:layout_width="60dp"
-            android:layout_height="wrap_content"
-            android:inputType="numberDecimal"
-            android:imeOptions="actionDone"
-            android:textSize="16sp"
-            android:text="3.0"
-            android:textAlignment="center" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text=" km"
-            android:textSize="16sp" />
-    </LinearLayout>
-
-    <LinearLayout
         android:id="@+id/llPointsHeader"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -49,7 +15,7 @@
         android:gravity="center_vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/llDistance">
+        app:layout_constraintTop_toTopOf="parent">
 
         <TextView
             android:id="@+id/tvListHeader"
@@ -185,15 +151,15 @@
             android:id="@+id/flSelectArea"
             android:layout_width="280dp"
             android:layout_height="280dp"
-            android:layout_marginTop="8dp"
-            android:clickable="true"
-            android:focusable="true">
+            android:layout_marginTop="8dp">
 
             <ImageView
                 android:id="@+id/ivArrow"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:src="@drawable/ic_arrow_up"
+                android:clickable="true"
+                android:focusable="true"
                 app:tint="@android:color/holo_red_dark" />
 
             <TextView
@@ -211,6 +177,30 @@
                 android:shadowDx="2"
                 android:shadowDy="2" />
         </FrameLayout>
+
+        <LinearLayout
+            android:id="@+id/llAccuracy"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
+
+            <ImageView
+                android:id="@+id/ivAccuracyIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_sensor_accuracy"
+                app:tint="#FF0000" />
+
+            <TextView
+                android:id="@+id/tvAccuracyText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Unreliable - please move phone in an 8 shape"
+                android:textSize="14sp" />
+        </LinearLayout>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

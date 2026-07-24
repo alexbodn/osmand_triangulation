@@ -8,7 +8,7 @@
 
     <LinearLayout
         android:id="@+id/llPointsHeader"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:orientation="horizontal"
@@ -19,19 +19,30 @@
 
         <TextView
             android:id="@+id/tvListHeader"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Active Points (0)"
+            android:text="🧭 Observations (0)"
             android:textSize="18sp"
             android:textStyle="bold" />
 
-        <Button
+        <ImageButton
             android:id="@+id/btnIntersection"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:text="Show Intersection"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_map"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="🗺️ Intersections"
             android:enabled="false" />
+
+        <ImageButton
+            android:id="@+id/btnShare"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_share"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Share observations" />
     </LinearLayout>
 
     <ScrollView

@@ -50,7 +50,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private lateinit var tvDeclination: TextView
     private lateinit var flSelectArea: android.widget.FrameLayout
     private lateinit var tvSelectReadingText: TextView
-    private lateinit var btnIntersection: Button
+    private lateinit var btnIntersection: View
     private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
 
@@ -100,6 +100,11 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             flSelectArea = view.findViewById(R.id.flSelectArea)
             tvSelectReadingText = view.findViewById(R.id.tvSelectReadingText)
             btnIntersection = view.findViewById(R.id.btnIntersection)
+
+            val btnShare = view.findViewById<View>(R.id.btnShare)
+            btnShare.setOnClickListener {
+                showShareDialog()
+            }
             cbMagnetic = view.findViewById(R.id.cbMagnetic)
             cbManualAzimuth = view.findViewById(R.id.cbManualAzimuth)
 
@@ -857,7 +862,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     }
     private fun updatePointsList() {
         btnIntersection.isEnabled = selectedLocations.size >= 2
-        tvListHeader.text = "Active Points (${selectedLocations.size})"
+        tvListHeader.text = "🧭 Observations (${selectedLocations.size})"
         llPointsContainer.removeAllViews()
 
         for (i in selectedLocations.indices) {
@@ -1145,6 +1150,111 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         val lon3 = lon1 + dLon13
 
         return Pair(Math.toDegrees(lat3), Math.toDegrees(lon3))
+    }
+
+
+    private fun showShareDialog() {
+        if (selectedLocations.isEmpty()) {
+            Toast.makeText(requireContext(), "No observations to share.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val builder = android.app.AlertDialog.Builder(requireContext())
+        builder.setTitle("Share Data")
+
+        val view = layoutInflater.inflate(R.layout.dialog_share, null)
+        val cbObservations = view.findViewById<android.widget.CheckBox>(R.id.cbShareObservations)
+        val cbIntersection = view.findViewById<android.widget.CheckBox>(R.id.cbShareIntersection)
+
+        // Only enable intersection option if we have at least 2 points
+        cbIntersection.isEnabled = selectedLocations.size >= 2
+        if (!cbIntersection.isEnabled) {
+            cbIntersection.isChecked = false
+        }
+
+        builder.setView(view)
+        builder.setPositiveButton("Share") { _, _ ->
+            shareData(cbObservations.isChecked, cbIntersection.isChecked)
+        }
+        builder.setNegativeButton("Cancel", null)
+        builder.show()
+    }
+
+    private fun shareData(shareObservations: Boolean, shareIntersection: Boolean) {
+        val features = org.json.JSONArray()
+
+        if (shareObservations) {
+            for (reading in selectedLocations) {
+                val feature = org.json.JSONObject()
+                feature.put("type", "Feature")
+
+                val geometry = org.json.JSONObject()
+                geometry.put("type", "Point")
+                val coords = org.json.JSONArray()
+                coords.put(reading.lon)
+                coords.put(reading.lat)
+                geometry.put("coordinates", coords)
+                feature.put("geometry", geometry)
+
+                val properties = org.json.JSONObject()
+                properties.put("azimuth", reading.azimuth)
+                if (reading.tempDesc != null) properties.put("desc", reading.tempDesc)
+                feature.put("properties", properties)
+
+                features.put(feature)
+            }
+        }
+
+        if (shareIntersection && selectedLocations.size >= 2) {
+            var targetLat: Double? = null
+            var targetLon: Double? = null
+
+            val cog = calculateCenterOfGravity()
+            if (cog != null) {
+                targetLat = cog.first
+                targetLon = cog.second
+            } else {
+                val r1 = selectedLocations[selectedLocations.size - 2]
+                val r2 = selectedLocations[selectedLocations.size - 1]
+                val intersection = calculateIntersection(r1, r2)
+                if (intersection != null) {
+                    targetLat = intersection.first
+                    targetLon = intersection.second
+                }
+            }
+
+            if (targetLat != null && targetLon != null) {
+                val feature = org.json.JSONObject()
+                feature.put("type", "Feature")
+
+                val geometry = org.json.JSONObject()
+                geometry.put("type", "Point")
+                val coords = org.json.JSONArray()
+                coords.put(targetLon)
+                coords.put(targetLat)
+                geometry.put("coordinates", coords)
+                feature.put("geometry", geometry)
+
+                val properties = org.json.JSONObject()
+                properties.put("desc", "Intersection / Center of Gravity")
+                feature.put("properties", properties)
+
+                features.put(feature)
+            }
+        }
+
+        if (features.length() == 0) return
+
+        val root = org.json.JSONObject()
+        root.put("type", "FeatureCollection")
+        root.put("features", features)
+
+        val jsonStr = root.toString()
+
+        val intent = Intent(Intent.ACTION_SEND)
+        intent.type = "text/plain"
+        intent.putExtra(Intent.EXTRA_TEXT, jsonStr)
+        startActivity(Intent.createChooser(intent, "Share via"))
     }
 
     private fun drawTriangulationPointsOnMap() {

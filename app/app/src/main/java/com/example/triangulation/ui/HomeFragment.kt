@@ -1066,9 +1066,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     val root = org.json.JSONObject(jsonStr)
                     val features = root.getJSONArray("features")
 
-                    // Clear existing before import to prevent stale defaults
-                    selectedLocations.clear()
-
                     var pointsAdded = 0
                     for (i in 0 until features.length()) {
                         val feature = features.getJSONObject(i)
@@ -1085,7 +1082,13 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                 val desc = props.optString("desc").takeIf { it.isNotBlank() }
 
                                 val newReading = Reading(lat, lon, azimuth, backAzimuth, desc)
-                                selectedLocations.add(newReading)
+                                val existingIndex = selectedLocations.indexOfFirst { it.lat == lat && it.lon == lon }
+                                if (existingIndex != -1) {
+                                    // Overwrite existing to ensure any corrupted data is replaced by the imported data
+                                    selectedLocations[existingIndex] = newReading
+                                } else {
+                                    selectedLocations.add(newReading)
+                                }
                                 pointsAdded++
                             }
                         }

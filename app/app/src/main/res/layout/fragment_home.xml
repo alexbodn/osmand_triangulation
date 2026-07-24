@@ -71,22 +71,22 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <ImageButton
+        <Button
             android:id="@+id/btnImport"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
-            android:src="@drawable/ic_download"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Import GeoJSON" />
+            app:icon="@drawable/ic_download"
+            android:text="Import"
+            style="?android:attr/borderlessButtonStyle" />
 
-        <ImageButton
+        <Button
             android:id="@+id/btnShare"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@drawable/ic_share"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Share observations" />
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/ic_share"
+            android:text="Share"
+            style="?android:attr/borderlessButtonStyle" />
     </LinearLayout>
 
     <LinearLayout

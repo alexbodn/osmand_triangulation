@@ -593,7 +593,11 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         }
 
         if (!isUserEditing || forceUpdateEditText) {
+            // Temporarily disable the edit watcher flag so programmatic updates don't double-subtract declination
+            val wasEditing = isUserEditing
+            isUserEditing = false
             etAzimuth.setText(String.format("%.1f", azimuthToDisplay))
+            isUserEditing = wasEditing
         }
 
         val backAzimuth = (azimuthToDisplay + 180) % 360

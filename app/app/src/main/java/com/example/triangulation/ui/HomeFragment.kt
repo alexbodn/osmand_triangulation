@@ -194,7 +194,31 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             cbMagnetic.setOnCheckedChangeListener { _, isChecked ->
                 val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
                 sharedPrefs.edit().putBoolean("isMagneticChecked", isChecked).apply()
-                updateBackAzimuthDisplay()
+
+                if (cbManualAzimuth.isChecked) {
+                    try {
+                        val currentText = etAzimuth.text.toString()
+                        if (currentText.isNotEmpty()) {
+                            var currentVal = currentText.toFloat()
+                            val declination = calculateCurrentDeclination()
+                            if (isChecked) {
+                                currentVal += declination
+                            } else {
+                                currentVal -= declination
+                            }
+
+                            if (currentVal >= 360f) currentVal -= 360f
+                            if (currentVal < 0f) currentVal += 360f
+
+                            etAzimuth.setText(String.format("%.1f", currentVal))
+                            val backAzimuth = (currentVal + 180) % 360
+                            tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
+                            etAzimuth.setSelection(etAzimuth.text.length)
+                        }
+                    } catch (e: Exception) {}
+                } else {
+                    updateBackAzimuthDisplay()
+                }
             }
 
             view.findViewById<android.widget.ImageView>(R.id.ivArrow).setOnTouchListener { v, event ->
@@ -225,6 +249,12 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                 val strVal = etAzimuth.text.toString()
                                 if (strVal.isNotEmpty()) {
                                     azimuthToUse = strVal.toFloat()
+
+                                    if (!cbMagnetic.isChecked) {
+                                        azimuthToUse += calculateCurrentDeclination()
+                                        if (azimuthToUse >= 360f) azimuthToUse -= 360f
+                                        if (azimuthToUse < 0f) azimuthToUse += 360f
+                                    }
                                 }
                             } catch (e: Exception) {
                             }
@@ -566,7 +596,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         }
     }
 
-    private fun updateBackAzimuthDisplay() {
+    private fun updateBackAzimuthDisplay(forceUpdateEditText: Boolean = false) {
         var azimuthToDisplay = baseAzimuth
 
         val declination = calculateCurrentDeclination()
@@ -578,7 +608,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             if (azimuthToDisplay < 0f) azimuthToDisplay += 360f
         }
 
-        if (!cbManualAzimuth.isChecked) {
+        if (!cbManualAzimuth.isChecked || forceUpdateEditText) {
             etAzimuth.setText(String.format("%.1f", azimuthToDisplay))
             val backAzimuth = (azimuthToDisplay + 180) % 360
             tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
@@ -749,8 +779,14 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 cbManualAzimuth.tag = null
 
                 etAzimuth.isEnabled = true
-                etAzimuth.setText(String.format("%.1f", azimuthExtra))
-                val backAzimuth = (azimuthExtra + 180) % 360
+                var displayAzimuth = azimuthExtra
+                if (!cbMagnetic.isChecked) {
+                    displayAzimuth -= calculateCurrentDeclination()
+                    if (displayAzimuth < 0f) displayAzimuth += 360f
+                    if (displayAzimuth >= 360f) displayAzimuth -= 360f
+                }
+                etAzimuth.setText(String.format("%.1f", displayAzimuth))
+                val backAzimuth = (displayAzimuth + 180) % 360
                 tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
             } else {
                 // When sharing a NEW location with the app, ensure we start taking live sensor data immediately
@@ -905,8 +941,16 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 cbManualAzimuth.tag = null
 
                 etAzimuth.isEnabled = true
-                etAzimuth.setText(String.format("%.1f", reading.azimuth))
-                val backAzimuth = (reading.azimuth + 180) % 360
+
+                var displayAzimuth = reading.azimuth
+                if (!cbMagnetic.isChecked) {
+                    displayAzimuth -= calculateCurrentDeclination()
+                    if (displayAzimuth < 0f) displayAzimuth += 360f
+                    if (displayAzimuth >= 360f) displayAzimuth -= 360f
+                }
+
+                etAzimuth.setText(String.format("%.1f", displayAzimuth))
+                val backAzimuth = (displayAzimuth + 180) % 360
                 tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
 
                 refreshUIForCurrentLocation()
@@ -1494,7 +1538,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             // Handle deferred UI update for new intents with manual mode defaulted ON
             if (pendingInitialSensorUpdate) {
                 pendingInitialSensorUpdate = false
-                updateBackAzimuthDisplay()
+                updateBackAzimuthDisplay(true)
                 etAzimuth.isEnabled = true
             }
 

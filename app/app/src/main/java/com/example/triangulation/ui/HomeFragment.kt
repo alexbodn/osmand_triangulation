@@ -807,6 +807,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 }
             }
 
+            updateBackAzimuthDisplay(true)
+
             // Switch to Home tab
             (activity as? com.example.triangulation.MainActivity)?.let { mainActivity ->
                 val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)

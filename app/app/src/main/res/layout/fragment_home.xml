@@ -77,7 +77,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
-            android:drawableLeft="@drawable/ic_download"
+            android:drawableLeft="@drawable/ic_upload"
             android:drawablePadding="8dp"
             android:text="Import"
             style="?android:attr/borderlessButtonStyle" />
@@ -86,7 +86,7 @@
             android:id="@+id/btnShare"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:drawableLeft="@drawable/ic_upload"
+            android:drawableLeft="@drawable/ic_share"
             android:drawablePadding="8dp"
             android:text="Share"
             style="?android:attr/borderlessButtonStyle" />

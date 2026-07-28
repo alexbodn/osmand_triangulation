@@ -51,6 +51,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private lateinit var flSelectArea: android.widget.FrameLayout
     private lateinit var tvSelectReadingText: TextView
     private lateinit var btnIntersection: View
+    private lateinit var cbReverse: CheckBox
     private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
 
@@ -111,6 +112,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 importGeoJsonLauncher.launch("*/*")
             }
 
+            cbReverse = view.findViewById(R.id.cbReverse)
             cbMagnetic = view.findViewById(R.id.cbMagnetic)
             cbManualAzimuth = view.findViewById(R.id.cbManualAzimuth)
 
@@ -144,6 +146,15 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                     etAzimuth.clearFocus()
                 }
+            }
+
+            cbReverse.setOnCheckedChangeListener { _, isChecked ->
+                val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+                sharedPrefs.edit().putBoolean("isReverseChecked", isChecked).apply()
+
+                Thread {
+                    drawTriangulationPointsOnMap(isChecked)
+                }.start()
             }
 
             cbManualAzimuth.setOnCheckedChangeListener { _, isChecked ->
@@ -295,10 +306,11 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             etAzimuth.isEnabled = false
                             requireActivity().title = "Triangulation - No Location"
 
+                            val isReverse = cbReverse.isChecked
                             Thread {
-                                drawTriangulationPointsOnMap()
+                                drawTriangulationPointsOnMap(isReverse)
 
-                                requireActivity().runOnUiThread {
+                                activity?.runOnUiThread {
                                     val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
                                         ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
                                     // Map will open automatically when cog or intersection is launched
@@ -565,6 +577,9 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
     private fun loadState() {
         val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+
+        val isReverseChecked = sharedPrefs.getBoolean("isReverseChecked", true)
+        cbReverse.isChecked = isReverseChecked
 
         val isMagneticChecked = sharedPrefs.getBoolean("isMagneticChecked", false)
         cbMagnetic.isChecked = isMagneticChecked
@@ -1057,8 +1072,9 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 selectedLocations.removeAt(i)
                 saveState()
                 updatePointsList()
+                val isReverse = cbReverse.isChecked
                 Thread {
-                    drawTriangulationPointsOnMap()
+                    drawTriangulationPointsOnMap(isReverse)
                 }.start()
                 Toast.makeText(requireContext(), "Point removed from active list", Toast.LENGTH_SHORT).show()
             }
@@ -1111,9 +1127,16 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                         saveState()
                         updatePointsList()
                         Toast.makeText(requireContext(), "Imported $pointsAdded observations", Toast.LENGTH_SHORT).show()
-                        if (selectedLocations.size >= 2) {
-                            btnIntersection.performClick()
-                        }
+
+                        val isReverse = cbReverse.isChecked
+                        Thread {
+                            drawTriangulationPointsOnMap(isReverse)
+                            if (selectedLocations.size >= 2) {
+                                activity?.runOnUiThread {
+                                    btnIntersection.performClick()
+                                }
+                            }
+                        }.start()
                     } else {
                         Toast.makeText(requireContext(), "No valid observations found in file", Toast.LENGTH_SHORT).show()
                     }
@@ -1221,11 +1244,11 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private fun calculateIntersection(r1: Reading, r2: Reading): Pair<Double, Double>? {
         val lat1 = Math.toRadians(r1.lat)
         val lon1 = Math.toRadians(r1.lon)
-        val brng1 = Math.toRadians(r1.backAzimuth.toDouble())
+        val brng1 = if (cbReverse.isChecked) Math.toRadians(r1.backAzimuth.toDouble()) else Math.toRadians(r1.azimuth.toDouble())
 
         val lat2 = Math.toRadians(r2.lat)
         val lon2 = Math.toRadians(r2.lon)
-        val brng2 = Math.toRadians(r2.backAzimuth.toDouble())
+        val brng2 = if (cbReverse.isChecked) Math.toRadians(r2.backAzimuth.toDouble()) else Math.toRadians(r2.azimuth.toDouble())
 
         val dLat = lat2 - lat1
         val dLon = lon2 - lon1
@@ -1360,7 +1383,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         startActivity(Intent.createChooser(intent, "Share via"))
     }
 
-    private fun drawTriangulationPointsOnMap() {
+    private fun drawTriangulationPointsOnMap(isReverse: Boolean) {
         if (selectedLocations.isEmpty()) {
             osmandHelper.removeGpx("triangulation.gpx")
             return
@@ -1427,7 +1450,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             } else {
                 defaultDist
             }
-            val point2 = calculateDestination(reading.lat, reading.lon, reading.backAzimuth.toDouble(), dist)
+            val bearing = if (isReverse) reading.backAzimuth.toDouble() else reading.azimuth.toDouble()
+            val point2 = calculateDestination(reading.lat, reading.lon, bearing, dist)
 
             gpxStr.append("      <trkpt lat=\"${point2.first}\" lon=\"${point2.second}\" />\n")
             gpxStr.append("    </trkseg>\n")

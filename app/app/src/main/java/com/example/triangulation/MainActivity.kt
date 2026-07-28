@@ -27,9 +27,17 @@ class MainActivity : AppCompatActivity() {
                 0 -> "Home"
                 1 -> "Locations"
                 2 -> "Settings"
+                3 -> "Usage"
                 else -> null
             }
         }.attach()
+
+        val sharedPrefs = getSharedPreferences("triangulation_prefs", android.content.Context.MODE_PRIVATE)
+        val isFirstRun = sharedPrefs.getBoolean("isFirstRun", true)
+        if (isFirstRun) {
+            sharedPrefs.edit().putBoolean("isFirstRun", false).apply()
+            binding.viewPager.setCurrentItem(3, false)
+        }
     }
 
     override fun onNewIntent(intent: Intent?) {

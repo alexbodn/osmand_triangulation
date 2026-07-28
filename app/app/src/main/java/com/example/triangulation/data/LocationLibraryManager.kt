@@ -77,6 +77,21 @@ fun addLocation(location: LibraryLocation) {
         }
     }
 
+    fun editLocationDescription(lat: Double, lon: Double, oldDesc: String?, newDesc: String) {
+        val current = getLocations().toMutableList()
+        val index = if (oldDesc != null) {
+            current.indexOfFirst { it.lat == lat && it.lon == lon && it.desc == oldDesc }
+        } else {
+            current.indexOfFirst { it.lat == lat && it.lon == lon }
+        }
+
+        if (index != -1) {
+            val existing = current[index]
+            current[index] = existing.copy(desc = newDesc)
+            saveLocations(current)
+        }
+    }
+
 fun isLocationInLibrary(lat: Double, lon: Double, desc: String? = null): LibraryLocation? {
         val current = getLocations()
         return if (desc != null) {

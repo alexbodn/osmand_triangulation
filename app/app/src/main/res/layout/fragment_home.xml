@@ -7,8 +7,8 @@
     tools:context=".ui.HomeFragment">
 
     <LinearLayout
-        android:id="@+id/llMagnetic"
-        android:layout_width="wrap_content"
+        android:id="@+id/llPointsHeader"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:orientation="horizontal"
@@ -16,6 +16,92 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/tvListHeader"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text=" Observations (0)"
+            android:drawableStart="@drawable/ic_compass"
+            android:drawablePadding="8dp"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnIntersection"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:drawableLeft="@drawable/ic_map"
+            android:drawablePadding="8dp"
+            android:text="Intersections"
+            style="?android:attr/borderlessButtonStyle"
+            android:enabled="false" />
+
+    </LinearLayout>
+
+    <ScrollView
+        android:id="@+id/svPoints"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/llPointsHeader"
+        app:layout_constraintBottom_toTopOf="@id/llListActions">
+
+        <LinearLayout
+            android:id="@+id/llPointsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="8dp" />
+
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/llListActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:paddingEnd="8dp"
+        android:paddingBottom="8dp"
+        app:layout_constraintBottom_toTopOf="@id/llMagnetic"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Button
+            android:id="@+id/btnImport"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:drawableLeft="@drawable/ic_upload"
+            android:drawablePadding="8dp"
+            android:text="Import"
+            style="?android:attr/borderlessButtonStyle" />
+
+        <Button
+            android:id="@+id/btnShare"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:drawableLeft="@drawable/ic_share"
+            android:drawablePadding="8dp"
+            android:text="Share"
+            style="?android:attr/borderlessButtonStyle" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/llMagnetic"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/llAzimuth">
 
         <TextView
             android:id="@+id/tvDeclination"
@@ -39,11 +125,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/llMagnetic">
+        app:layout_constraintBottom_toTopOf="@id/llArrowContainer">
 
         <TextView
             android:layout_width="wrap_content"
@@ -83,120 +170,6 @@
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/llDistance"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/llAzimuth">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Default Line Length: "
-            android:textSize="16sp" />
-
-        <EditText
-            android:id="@+id/etDistance"
-            android:layout_width="60dp"
-            android:layout_height="wrap_content"
-            android:inputType="numberDecimal"
-            android:imeOptions="actionDone"
-            android:textSize="16sp"
-            android:text="3.0"
-            android:textAlignment="center" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text=" km"
-            android:textSize="16sp" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/llPointsHeader"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/llDistance">
-
-        <TextView
-            android:id="@+id/tvListHeader"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Active Points (0)"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/btnIntersection"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:text="Show Intersection"
-            android:enabled="false" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/llTableHeader"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:padding="8dp"
-        android:orientation="horizontal"
-        app:layout_constraintTop_toBottomOf="@id/llPointsHeader">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Direct Azimuth"
-            android:textStyle="bold"
-            android:textAlignment="center" />
-
-        <TextView
-            android:layout_width="80dp"
-            android:layout_height="wrap_content"
-            android:text="View"
-            android:textStyle="bold"
-            android:textAlignment="center"
-            android:layout_marginEnd="8dp" />
-
-        <TextView
-            android:layout_width="80dp"
-            android:layout_height="wrap_content"
-            android:text="Delete"
-            android:textStyle="bold"
-            android:textAlignment="center" />
-
-    </LinearLayout>
-
-    <ScrollView
-        android:id="@+id/svPoints"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/llTableHeader"
-        app:layout_constraintBottom_toTopOf="@id/llArrowContainer">
-
-        <LinearLayout
-            android:id="@+id/llPointsContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingBottom="16dp" />
-
-    </ScrollView>
-
-    <LinearLayout
         android:id="@+id/llArrowContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -217,15 +190,15 @@
             android:id="@+id/flSelectArea"
             android:layout_width="280dp"
             android:layout_height="280dp"
-            android:layout_marginTop="8dp"
-            android:clickable="true"
-            android:focusable="true">
+            android:layout_marginTop="8dp">
 
             <ImageView
                 android:id="@+id/ivArrow"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:src="@android:drawable/arrow_up_float"
+                android:src="@drawable/ic_arrow_up"
+                android:clickable="true"
+                android:focusable="true"
                 app:tint="@android:color/holo_red_dark" />
 
             <TextView
@@ -243,6 +216,30 @@
                 android:shadowDx="2"
                 android:shadowDy="2" />
         </FrameLayout>
+
+        <LinearLayout
+            android:id="@+id/llAccuracy"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
+
+            <ImageView
+                android:id="@+id/ivAccuracyIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_sensor_accuracy"
+                app:tint="#FF0000" />
+
+            <TextView
+                android:id="@+id/tvAccuracyText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Unreliable - please move phone in an 8 shape"
+                android:textSize="14sp" />
+        </LinearLayout>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

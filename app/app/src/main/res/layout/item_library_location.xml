@@ -20,12 +20,28 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tvLocationDesc"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textStyle="bold"
-            android:textSize="16sp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvLocationDesc"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <ImageButton
+                android:id="@+id/btnEdit"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_edit"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Edit description" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvLocationCoords"
@@ -35,26 +51,28 @@
             android:textColor="#666666" />
     </LinearLayout>
 
-    <Button
+    <ImageButton
         android:id="@+id/btnPoint"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Point"
-        style="?android:attr/borderlessButtonStyle" />
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_compass"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Point to location" />
 
-    <Button
+    <ImageButton
         android:id="@+id/btnShow"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Show"
-        style="?android:attr/borderlessButtonStyle" />
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_map"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="View on map" />
 
-    <Button
+    <ImageButton
         android:id="@+id/btnDelete"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Del"
-        android:textColor="@android:color/holo_red_dark"
-        style="?android:attr/borderlessButtonStyle" />
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_delete"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Delete point" />
 
 </LinearLayout>

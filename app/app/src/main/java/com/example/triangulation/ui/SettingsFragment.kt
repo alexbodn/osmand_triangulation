@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.CheckBox
 import android.widget.EditText
 import androidx.fragment.app.Fragment
 import com.example.triangulation.R
@@ -12,6 +13,7 @@ import com.example.triangulation.R
 class SettingsFragment : Fragment() {
 
     private lateinit var etDistance: EditText
+    private lateinit var cbVerbose: CheckBox
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -24,10 +26,16 @@ class SettingsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         etDistance = view.findViewById(R.id.etDistance)
+        cbVerbose = view.findViewById(R.id.cbVerbose)
 
         val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
         val savedDist = sharedPrefs.getFloat("defaultDistance", 3.0f)
         etDistance.setText(savedDist.toString())
+        cbVerbose.isChecked = sharedPrefs.getBoolean("verbose_mode", false)
+
+        cbVerbose.setOnCheckedChangeListener { _, isChecked ->
+            sharedPrefs.edit().putBoolean("verbose_mode", isChecked).apply()
+        }
 
         etDistance.setOnEditorActionListener { v, actionId, _ ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE || actionId == android.view.inputmethod.EditorInfo.IME_ACTION_NEXT) {

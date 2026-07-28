@@ -1160,6 +1160,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                         updatePointsList()
                         Toast.makeText(requireContext(), "Imported $pointsAdded observations", Toast.LENGTH_SHORT).show()
 
+                        val isReverse = cbReverse.isChecked
                         Thread {
                             drawTriangulationPointsOnMap()
                             if (selectedLocations.size >= 2) {

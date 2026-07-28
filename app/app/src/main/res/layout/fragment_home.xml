@@ -28,17 +28,6 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
-        <Button
-            android:id="@+id/btnIntersection"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:drawableLeft="@drawable/ic_map"
-            android:drawablePadding="8dp"
-            android:text="Intersections"
-            style="?android:attr/borderlessButtonStyle"
-            android:enabled="false" />
-
         <CheckBox
             android:id="@+id/cbReverse"
             android:layout_width="wrap_content"
@@ -81,6 +70,22 @@
         app:layout_constraintBottom_toTopOf="@id/llMagnetic"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
+
+        <Button
+            android:id="@+id/btnIntersection"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:drawableLeft="@drawable/ic_map"
+            android:drawablePadding="8dp"
+            android:text="Intersections"
+            style="?android:attr/borderlessButtonStyle"
+            android:enabled="false" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
 
         <Button
             android:id="@+id/btnImport"

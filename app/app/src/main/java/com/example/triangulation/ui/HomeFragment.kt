@@ -65,7 +65,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private var pendingInitialSensorUpdate = false
     private var selectedLocations = mutableListOf<Reading>()
 
-    data class Reading(val lat: Double, val lon: Double, val azimuth: Float, val backAzimuth: Float, val tempDesc: String? = null)
+    data class Reading(val lat: Double, val lon: Double, val azimuth: Float, val backAzimuth: Float, val tempDesc: String? = null, val isReverse: Boolean = true)
 
     private var currentLat: Double? = null
     private var currentLon: Double? = null
@@ -153,7 +153,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 sharedPrefs.edit().putBoolean("isReverseChecked", isChecked).apply()
 
                 Thread {
-                    drawTriangulationPointsOnMap(isChecked)
+                    drawTriangulationPointsOnMap()
                 }.start()
             }
 
@@ -306,9 +306,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             etAzimuth.isEnabled = false
                             requireActivity().title = "Triangulation - No Location"
 
-                            val isReverse = cbReverse.isChecked
                             Thread {
-                                drawTriangulationPointsOnMap(isReverse)
+                                drawTriangulationPointsOnMap()
 
                                 activity?.runOnUiThread {
                                     val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
@@ -1072,9 +1071,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 selectedLocations.removeAt(i)
                 saveState()
                 updatePointsList()
-                val isReverse = cbReverse.isChecked
                 Thread {
-                    drawTriangulationPointsOnMap(isReverse)
+                    drawTriangulationPointsOnMap()
                 }.start()
                 Toast.makeText(requireContext(), "Point removed from active list", Toast.LENGTH_SHORT).show()
             }
@@ -1130,7 +1128,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                         val isReverse = cbReverse.isChecked
                         Thread {
-                            drawTriangulationPointsOnMap(isReverse)
+                            drawTriangulationPointsOnMap()
                             if (selectedLocations.size >= 2) {
                                 activity?.runOnUiThread {
                                     btnIntersection.performClick()
@@ -1324,6 +1322,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                 val properties = org.json.JSONObject()
                 properties.put("azimuth", reading.azimuth)
+                properties.put("isReverse", reading.isReverse)
                 if (reading.tempDesc != null) properties.put("desc", reading.tempDesc)
                 feature.put("properties", properties)
 
@@ -1383,7 +1382,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         startActivity(Intent.createChooser(intent, "Share via"))
     }
 
-    private fun drawTriangulationPointsOnMap(isReverse: Boolean) {
+    private fun drawTriangulationPointsOnMap() {
         if (selectedLocations.isEmpty()) {
             osmandHelper.removeGpx("triangulation.gpx")
             return
@@ -1450,7 +1449,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             } else {
                 defaultDist
             }
-            val bearing = if (isReverse) reading.backAzimuth.toDouble() else reading.azimuth.toDouble()
+            val bearing = if (reading.isReverse) reading.backAzimuth.toDouble() else reading.azimuth.toDouble()
             val point2 = calculateDestination(reading.lat, reading.lon, bearing, dist)
 
             gpxStr.append("      <trkpt lat=\"${point2.first}\" lon=\"${point2.second}\" />\n")

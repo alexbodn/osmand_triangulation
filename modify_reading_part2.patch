@@ -1,0 +1,71 @@
+--- app/app/src/main/java/com/example/triangulation/ui/HomeFragment.kt
++++ app/app/src/main/java/com/example/triangulation/ui/HomeFragment.kt
+@@ -273,7 +273,7 @@
+                             val backAzimuth = (azimuthToUse + 180) % 360
+-                            val newReading = Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth, rawReceivedParameter?.let { extractDescription(it) })
++                            val newReading = Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth, rawReceivedParameter?.let { extractDescription(it) }, cbReverse.isChecked)
+
+                             val existingIndex = selectedLocations.indexOfFirst { it.lat == currentLat && it.lon == currentLon }
+                             if (existingIndex != -1) {
+@@ -308,9 +308,8 @@
+                             requireActivity().title = "Triangulation - No Location"
+
+-                            val isReverse = cbReverse.isChecked
+                             Thread {
+-                                drawTriangulationPointsOnMap(isReverse)
++                                drawTriangulationPointsOnMap()
+                             }.start()
+                         }
+                     }
+@@ -571,6 +570,7 @@
+                 obj.put("tempDesc", reading.tempDesc)
+             }
++            obj.put("isReverse", reading.isReverse)
+             jsonArray.put(obj)
+         }
+         sharedPrefs.edit().putString("locations", jsonArray.toString()).apply()
+@@ -603,7 +603,8 @@
+                             obj.getDouble("azimuth").toFloat(),
+                             obj.getDouble("backAzimuth").toFloat(),
+-                            if (obj.has("tempDesc")) obj.getString("tempDesc") else null
++                            if (obj.has("tempDesc")) obj.getString("tempDesc") else null,
++                            if (obj.has("isReverse")) obj.getBoolean("isReverse") else true
+                         )
+                     )
+                 }
+@@ -1074,9 +1075,8 @@
+                         if (calculateIntersection()) {
+                             Toast.makeText(context, "Intersection added to Library", Toast.LENGTH_SHORT).show()
+                         }
+-                val isReverse = cbReverse.isChecked
+                 Thread {
+-                    drawTriangulationPointsOnMap(isReverse)
++                    drawTriangulationPointsOnMap()
+                 }.start()
+                 // Set flag to false and nullify the share vars so we don't duplicate on next resume
+                 pendingInitialSensorUpdate = false
+@@ -1113,7 +1113,8 @@
+                                 val backAzimuth = (azimuth + 180) % 360
+                                 val desc = props.optString("desc").takeIf { it.isNotBlank() }
++                                val isReverseReading = if (props.has("isReverse")) props.getBoolean("isReverse") else true
+
+-                                val newReading = Reading(lat, lon, azimuth, backAzimuth, desc)
++                                val newReading = Reading(lat, lon, azimuth, backAzimuth, desc, isReverseReading)
+                                 val existingIndex = selectedLocations.indexOfFirst { it.lat == lat && it.lon == lon }
+                                 if (existingIndex != -1) {
+                                     // Overwrite existing to ensure any corrupted data is replaced by the imported data
+@@ -1130,9 +1131,8 @@
+                         Toast.makeText(requireContext(), "Imported $pointsAdded observations", Toast.LENGTH_SHORT).show()
+
+-                        val isReverse = cbReverse.isChecked
+                         Thread {
+-                            drawTriangulationPointsOnMap(isReverse)
++                            drawTriangulationPointsOnMap()
+                             if (selectedLocations.size >= 2) {
+                                 activity?.runOnUiThread {
+                                     btnIntersection.performClick()
+@@ -1327,6 +1327,7 @@
+                 val properties = JSONObject()
+                 properties.put("azimuth", reading.azimuth)
++                properties.put("isReverse", reading.isReverse)
+                 if (reading.tempDesc != null) properties.put("desc", reading.tempDesc)

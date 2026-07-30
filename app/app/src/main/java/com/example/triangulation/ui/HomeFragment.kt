@@ -51,7 +51,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private lateinit var flSelectArea: android.widget.FrameLayout
     private lateinit var tvSelectReadingText: TextView
     private lateinit var btnIntersection: View
-    private lateinit var cbReverse: CheckBox
+    private lateinit var spnIntersectionMode: android.widget.Spinner
     private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
 
@@ -65,7 +65,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private var pendingInitialSensorUpdate = false
     private var selectedLocations = mutableListOf<Reading>()
 
-    data class Reading(val lat: Double, val lon: Double, val azimuth: Float, val backAzimuth: Float, val tempDesc: String? = null, val isReverse: Boolean = true)
+    data class Reading(val lat: Double, val lon: Double, val azimuth: Float, val backAzimuth: Float, val tempDesc: String? = null)
 
     private var currentLat: Double? = null
     private var currentLon: Double? = null
@@ -112,7 +112,19 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 importGeoJsonLauncher.launch("*/*")
             }
 
-            cbReverse = view.findViewById(R.id.cbReverse)
+            spnIntersectionMode = view.findViewById(R.id.spnIntersectionMode)
+            spnIntersectionMode.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+                    sharedPrefs.edit().putInt("intersectionMode", position).apply()
+
+                    Thread {
+                        drawTriangulationPointsOnMap()
+                    }.start()
+                }
+                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            }
+
             cbMagnetic = view.findViewById(R.id.cbMagnetic)
             cbManualAzimuth = view.findViewById(R.id.cbManualAzimuth)
 
@@ -145,46 +157,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     view.findViewById<View>(R.id.llMagnetic).visibility = if (hasLocation) View.VISIBLE else View.GONE
 
                     etAzimuth.clearFocus()
-                }
-            }
-
-            cbReverse.setOnCheckedChangeListener { _, isChecked ->
-                if (cbReverse.tag == "suppress_save") return@setOnCheckedChangeListener
-
-                val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
-                val verboseMode = sharedPrefs.getBoolean("verbose_mode", false)
-
-                if (selectedLocations.isNotEmpty()) {
-                    android.app.AlertDialog.Builder(requireContext())
-                        .setTitle("Clear Observations?")
-                        .setMessage("Toggling reverse mode will clear your current observations. Continue?")
-                        .setPositiveButton("Yes") { _, _ ->
-                            selectedLocations.clear()
-                            updatePointsList()
-                            sharedPrefs.edit().putBoolean("isReverseChecked", isChecked).apply()
-                            if (verboseMode) {
-                                Toast.makeText(requireContext(), if (isChecked) "taking reverse azimuth for finding your location" else "taking direct azimuth for finding target location", Toast.LENGTH_SHORT).show()
-                            }
-                            Thread {
-                                drawTriangulationPointsOnMap()
-                            }.start()
-                        }
-                        .setNegativeButton("No") { _, _ ->
-                            cbReverse.tag = "suppress_save"
-                            cbReverse.isChecked = !isChecked
-                            cbReverse.tag = null
-                        }
-                        .setOnCancelListener {
-                            cbReverse.tag = "suppress_save"
-                            cbReverse.isChecked = !isChecked
-                            cbReverse.tag = null
-                        }
-                        .show()
-                } else {
-                    sharedPrefs.edit().putBoolean("isReverseChecked", isChecked).apply()
-                    if (verboseMode) {
-                        Toast.makeText(requireContext(), if (isChecked) "taking reverse azimuth for finding your location" else "taking direct azimuth for finding target location", Toast.LENGTH_SHORT).show()
-                    }
                 }
             }
 
@@ -302,7 +274,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             }
 
                             val backAzimuth = (azimuthToUse + 180) % 360
-                            val newReading = Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth, rawReceivedParameter?.let { extractDescription(it) }, cbReverse.isChecked)
+                            val newReading = Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth, rawReceivedParameter?.let { extractDescription(it) })
 
                             val existingIndex = selectedLocations.indexOfFirst { it.lat == currentLat && it.lon == currentLon }
                             if (existingIndex != -1) {
@@ -600,7 +572,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             if (reading.tempDesc != null) {
                 obj.put("tempDesc", reading.tempDesc)
             }
-            obj.put("isReverse", reading.isReverse)
             jsonArray.put(obj)
         }
         sharedPrefs.edit().putString("locations", jsonArray.toString()).apply()
@@ -609,8 +580,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private fun loadState() {
         val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
 
-        val isReverseChecked = sharedPrefs.getBoolean("isReverseChecked", true)
-        cbReverse.isChecked = isReverseChecked
+        val mode = sharedPrefs.getInt("intersectionMode", 1) // Default to Reverse
+        spnIntersectionMode.setSelection(mode)
 
         val isMagneticChecked = sharedPrefs.getBoolean("isMagneticChecked", false)
         cbMagnetic.isChecked = isMagneticChecked
@@ -632,8 +603,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             obj.getDouble("lon"),
                             obj.getDouble("azimuth").toFloat(),
                             obj.getDouble("backAzimuth").toFloat(),
-                            if (obj.has("tempDesc")) obj.getString("tempDesc") else null,
-                            if (obj.has("isReverse")) obj.getBoolean("isReverse") else true
+                            if (obj.has("tempDesc")) obj.getString("tempDesc") else null
                         )
                     )
                 }
@@ -1141,9 +1111,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                 val azimuth = props.getDouble("azimuth").toFloat()
                                 val backAzimuth = (azimuth + 180) % 360
                                 val desc = props.optString("desc").takeIf { it.isNotBlank() }
-                                val isReverseReading = if (props.has("isReverse")) props.getBoolean("isReverse") else true
 
-                                val newReading = Reading(lat, lon, azimuth, backAzimuth, desc, isReverseReading)
+                                val newReading = Reading(lat, lon, azimuth, backAzimuth, desc)
                                 val existingIndex = selectedLocations.indexOfFirst { it.lat == lat && it.lon == lon }
                                 if (existingIndex != -1) {
                                     // Overwrite existing to ensure any corrupted data is replaced by the imported data
@@ -1275,11 +1244,12 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private fun calculateIntersection(r1: Reading, r2: Reading): Pair<Double, Double>? {
         val lat1 = Math.toRadians(r1.lat)
         val lon1 = Math.toRadians(r1.lon)
-        val brng1 = if (cbReverse.isChecked) Math.toRadians(r1.backAzimuth.toDouble()) else Math.toRadians(r1.azimuth.toDouble())
+        val isReverseMode = spnIntersectionMode.selectedItemPosition == 1
+        val brng1 = if (isReverseMode) Math.toRadians(r1.backAzimuth.toDouble()) else Math.toRadians(r1.azimuth.toDouble())
 
         val lat2 = Math.toRadians(r2.lat)
         val lon2 = Math.toRadians(r2.lon)
-        val brng2 = if (cbReverse.isChecked) Math.toRadians(r2.backAzimuth.toDouble()) else Math.toRadians(r2.azimuth.toDouble())
+        val brng2 = if (isReverseMode) Math.toRadians(r2.backAzimuth.toDouble()) else Math.toRadians(r2.azimuth.toDouble())
 
         val dLat = lat2 - lat1
         val dLon = lon2 - lon1
@@ -1306,7 +1276,15 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         val dLon13 = atan2(sin(brng1)*sin(dist13)*cos(lat1), cos(dist13) - sin(lat1)*sin(lat3))
         val lon3 = lon1 + dLon13
 
-        return Pair(Math.toDegrees(lat3), Math.toDegrees(lon3))
+        val intersectLat = Math.toDegrees(lat3)
+        val intersectLon = Math.toDegrees(lon3)
+
+        val distKm = calculateDistance(r1.lat, r1.lon, intersectLat, intersectLon)
+        if (distKm > 2000) {
+            activity?.runOnUiThread { Toast.makeText(requireContext(), "Warning: Intersection is very far (> 2000 km)", Toast.LENGTH_LONG).show() }
+        }
+
+        return Pair(intersectLat, intersectLon)
     }
 
 
@@ -1355,7 +1333,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                 val properties = org.json.JSONObject()
                 properties.put("azimuth", reading.azimuth)
-                properties.put("isReverse", reading.isReverse)
                 if (reading.tempDesc != null) properties.put("desc", reading.tempDesc)
                 feature.put("properties", properties)
 
@@ -1482,7 +1459,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             } else {
                 defaultDist
             }
-            val bearing = if (reading.isReverse) reading.backAzimuth.toDouble() else reading.azimuth.toDouble()
+            val isReverseMode = spnIntersectionMode.selectedItemPosition == 1
+            val bearing = if (isReverseMode) reading.backAzimuth.toDouble() else reading.azimuth.toDouble()
             val point2 = calculateDestination(reading.lat, reading.lon, bearing, dist)
 
             gpxStr.append("      <trkpt lat=\"${point2.first}\" lon=\"${point2.second}\" />\n")

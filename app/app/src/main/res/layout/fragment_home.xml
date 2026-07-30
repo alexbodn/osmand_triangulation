@@ -28,16 +28,6 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
-        <CheckBox
-            android:id="@+id/cbReverse"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text=" reverse"
-            android:drawableStart="@drawable/ic_reverse"
-            android:paddingStart="4dp"
-            android:checked="true" />
-
     </LinearLayout>
 
     <ScrollView
@@ -64,7 +54,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="end"
+        android:gravity="center_vertical"
         android:paddingEnd="8dp"
         android:paddingBottom="8dp"
         app:layout_constraintBottom_toTopOf="@id/llMagnetic"
@@ -78,9 +68,15 @@
             android:layout_marginStart="8dp"
             android:drawableLeft="@drawable/ic_map"
             android:drawablePadding="8dp"
-            android:text="Intersections"
+            android:text="Intersect"
             style="?android:attr/borderlessButtonStyle"
             android:enabled="false" />
+
+        <Spinner
+            android:id="@+id/spnIntersectionMode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:entries="@array/intersection_modes" />
 
         <View
             android:layout_width="0dp"

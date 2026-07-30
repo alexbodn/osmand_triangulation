@@ -52,6 +52,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private lateinit var tvSelectReadingText: TextView
     private lateinit var btnIntersection: View
     private lateinit var spnIntersectionMode: android.widget.Spinner
+    private lateinit var tvIntersectionMode: TextView
     private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
 
@@ -113,10 +114,29 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             spnIntersectionMode = view.findViewById(R.id.spnIntersectionMode)
+            tvIntersectionMode = view.findViewById(R.id.tvIntersectionMode)
+
+            var isInitialSpinnerSelection = true
+
+            val spinnerAdapter = android.widget.ArrayAdapter.createFromResource(
+                requireContext(),
+                R.array.intersection_modes,
+                R.layout.item_spinner_empty
+            )
+            spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            spnIntersectionMode.adapter = spinnerAdapter
+
             spnIntersectionMode.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                     val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
                     sharedPrefs.edit().putInt("intersectionMode", position).apply()
+                    tvIntersectionMode.text = parent?.getItemAtPosition(position).toString()
+
+                    if (!isInitialSpinnerSelection) {
+                        val target = calculateTarget()
+                        if (target != null) checkHorizonWarning(target.first, target.second)
+                    }
+                    isInitialSpinnerSelection = false
 
                     Thread {
                         drawTriangulationPointsOnMap()
@@ -357,27 +377,13 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             btnIntersection.setOnClickListener {
-                var targetLat: Double? = null
-                var targetLon: Double? = null
-
-                if (selectedLocations.size >= 2) {
-                    val cog = calculateCenterOfGravity()
-                    if (cog != null) {
-                        targetLat = cog.first
-                        targetLon = cog.second
-                    } else {
-                        // Fallback to intersection of last two if cog fails
-                        val r1 = selectedLocations[selectedLocations.size - 2]
-                        val r2 = selectedLocations[selectedLocations.size - 1]
-                        val intersection = calculateIntersection(r1, r2)
-                        if (intersection != null) {
-                            targetLat = intersection.first
-                            targetLon = intersection.second
-                        }
-                    }
-                }
+                val target = calculateTarget()
+                val targetLat = target?.first
+                val targetLon = target?.second
 
                 if (targetLat != null && targetLon != null) {
+                    checkHorizonWarning(targetLat, targetLon)
+
                     val finalLat = targetLat
                     val finalLon = targetLon
 
@@ -409,6 +415,33 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         } catch (e: Exception) {
             Log.e("Triangulation", "Error in onCreate", e)
             Toast.makeText(requireContext(), "Startup error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun calculateTarget(): Pair<Double, Double>? {
+        if (selectedLocations.size >= 2) {
+            val cog = calculateCenterOfGravity()
+            if (cog != null) {
+                return cog
+            } else {
+                // Fallback to intersection of last two if cog fails
+                val r1 = selectedLocations[selectedLocations.size - 2]
+                val r2 = selectedLocations[selectedLocations.size - 1]
+                return calculateIntersection(r1, r2)
+            }
+        }
+        return null
+    }
+
+    private fun checkHorizonWarning(targetLat: Double, targetLon: Double) {
+        if (selectedLocations.isNotEmpty()) {
+            val r1 = selectedLocations.first()
+            val distKm = calculateDistance(r1.lat, r1.lon, targetLat, targetLon)
+            if (distKm > 2000) {
+                activity?.runOnUiThread {
+                    Toast.makeText(requireContext(), "Warning: Intersection is very far (> 2000 km), possibly over the horizon", Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 
@@ -1244,7 +1277,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private fun calculateIntersection(r1: Reading, r2: Reading): Pair<Double, Double>? {
         val lat1 = Math.toRadians(r1.lat)
         val lon1 = Math.toRadians(r1.lon)
-        val isReverseMode = spnIntersectionMode.selectedItemPosition == 1
+        val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+        val isReverseMode = sharedPrefs.getInt("intersectionMode", 1) == 1
         val brng1 = if (isReverseMode) Math.toRadians(r1.backAzimuth.toDouble()) else Math.toRadians(r1.azimuth.toDouble())
 
         val lat2 = Math.toRadians(r2.lat)
@@ -1278,11 +1312,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
         val intersectLat = Math.toDegrees(lat3)
         val intersectLon = Math.toDegrees(lon3)
-
-        val distKm = calculateDistance(r1.lat, r1.lon, intersectLat, intersectLon)
-        if (distKm > 2000) {
-            activity?.runOnUiThread { Toast.makeText(requireContext(), "Warning: Intersection is very far (> 2000 km)", Toast.LENGTH_LONG).show() }
-        }
 
         return Pair(intersectLat, intersectLon)
     }
@@ -1459,7 +1488,9 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             } else {
                 defaultDist
             }
-            val isReverseMode = spnIntersectionMode.selectedItemPosition == 1
+
+            // Thread safe: pass mode via parameter or calculate before thread
+            val isReverseMode = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE).getInt("intersectionMode", 1) == 1
             val bearing = if (isReverseMode) reading.backAzimuth.toDouble() else reading.azimuth.toDouble()
             val point2 = calculateDestination(reading.lat, reading.lon, bearing, dist)
 

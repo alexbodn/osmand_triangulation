@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="intersection_modes">
+        <item>Direct</item>
+        <item>Reverse</item>
+    </string-array>
+</resources>

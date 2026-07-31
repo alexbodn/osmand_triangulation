@@ -310,7 +310,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                             saveState()
                             updatePointsList()
-                            showVerboseToast("Reading saved. Drawing silently on Map...")
+                            Toast.makeText(requireContext(), "Reading saved. Drawing silently on Map...", Toast.LENGTH_SHORT).show()
 
                             // Restore the manual default if it was temporarily forced true during edit
                             val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
@@ -350,11 +350,11 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                             coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                                             try {
                                                 startActivity(coldIntent)
-                                                showVerboseToast("OsmAnd+ hot/cold intent fired")
+                                                Toast.makeText(requireContext(), "OsmAnd+ hot/cold intent fired", Toast.LENGTH_SHORT).show()
                                             } catch (e: Exception) {
                                                 coldIntent.setPackage("net.osmand")
                                                 startActivity(coldIntent)
-                                                showVerboseToast("OsmAnd hot/cold intent fired")
+                                                Toast.makeText(requireContext(), "OsmAnd hot/cold intent fired", Toast.LENGTH_SHORT).show()
                                             }
 
                                             Thread {
@@ -393,11 +393,11 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                     try {
                         startActivity(coldIntent)
-                        showVerboseToast("OsmAnd+ hot/cold intent fired")
+                        Toast.makeText(requireContext(), "OsmAnd+ hot/cold intent fired", Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
                         coldIntent.setPackage("net.osmand")
                         startActivity(coldIntent)
-                        showVerboseToast("OsmAnd hot/cold intent fired")
+                        Toast.makeText(requireContext(), "OsmAnd hot/cold intent fired", Toast.LENGTH_SHORT).show()
                     }
 
                     Thread {

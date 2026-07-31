@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Usage &amp; Triangulation Guide"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Reverse Triangulation (Resection)"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Used when you want to find your current, unknown location on the map. You measure the azimuths to known landmarks (e.g. mountain peaks, towers) and plot their back-azimuths from the landmarks. The intersection point of these back-azimuth lines reveals your location. Ensure the Intersection Mode is set to 'Reverse'."
+            android:textSize="16sp"
+            android:layout_marginBottom="16dp"/>
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:src="@drawable/ic_reverse_triangulation"
+            android:layout_marginBottom="24dp"
+            android:scaleType="fitCenter"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Direct Triangulation (Intersection)"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Used when you want to find the location of an unknown, distant object (e.g. a smoke plume). You measure the azimuth to the object from two or more known locations. The intersection point of these direct azimuth lines reveals the object's location. Ensure the Intersection Mode is set to 'Direct'."
+            android:textSize="16sp"
+            android:layout_marginBottom="16dp"/>
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:src="@drawable/ic_direct_triangulation"
+            android:layout_marginBottom="24dp"
+            android:scaleType="fitCenter"/>
+
+    </LinearLayout>
+</ScrollView>

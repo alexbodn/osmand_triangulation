@@ -28,17 +28,6 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
-        <Button
-            android:id="@+id/btnIntersection"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:drawableLeft="@drawable/ic_map"
-            android:drawablePadding="8dp"
-            android:text="Intersections"
-            style="?android:attr/borderlessButtonStyle"
-            android:enabled="false" />
-
     </LinearLayout>
 
     <ScrollView
@@ -65,12 +54,72 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="end"
+        android:gravity="center_vertical"
         android:paddingEnd="8dp"
         android:paddingBottom="8dp"
         app:layout_constraintBottom_toTopOf="@id/llMagnetic"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginStart="8dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_split_button">
+
+                <Button
+                    android:id="@+id/btnIntersection"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:drawableLeft="@drawable/ic_map"
+                    android:drawablePadding="4dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="4dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:text="Intersect"
+                    android:textSize="14sp"
+                    android:background="@android:color/transparent"
+                    android:enabled="false" />
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="4dp"
+                    android:background="#CCCCCC"/>
+
+                <Spinner
+                    android:id="@+id/spnIntersectionMode"
+                    android:layout_width="24dp"
+                    android:layout_height="match_parent"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:padding="0dp"
+                    android:background="@drawable/bg_spinner_tight" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvIntersectionMode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="10sp"
+                android:layout_marginTop="-2dp"
+                android:text="Reverse" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
 
         <Button
             android:id="@+id/btnImport"

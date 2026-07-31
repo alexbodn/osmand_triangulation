@@ -36,6 +36,38 @@
             android:textSize="16sp" />
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/llHorizon"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toBottomOf="@id/llDistance">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Horizon Warning: > "
+            android:textSize="16sp" />
+
+        <EditText
+            android:id="@+id/etHorizon"
+            android:layout_width="70dp"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:imeOptions="actionDone"
+            android:textSize="16sp"
+            android:text="2000"
+            android:textAlignment="center" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=" km"
+            android:textSize="16sp" />
+    </LinearLayout>
+
     <CheckBox
         android:id="@+id/cbVerbose"
         android:layout_width="match_parent"
@@ -43,6 +75,6 @@
         android:layout_marginTop="16dp"
         android:text="Verbose mode"
         android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/llDistance" />
+        app:layout_constraintTop_toBottomOf="@id/llHorizon" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

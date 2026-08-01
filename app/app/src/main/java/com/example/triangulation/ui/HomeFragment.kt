@@ -43,7 +43,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
     private lateinit var ivArrow: ImageView
     private lateinit var etAzimuth: EditText
-    private lateinit var tvBackAzimuth: TextView
     private lateinit var llMagnetic: android.widget.LinearLayout
     private lateinit var llAzimuth: android.widget.LinearLayout
     private lateinit var llArrowContainer: android.widget.LinearLayout
@@ -93,7 +92,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
             ivArrow = view.findViewById(R.id.ivArrow)
             etAzimuth = view.findViewById(R.id.etAzimuth)
-            tvBackAzimuth = view.findViewById(R.id.tvBackAzimuth)
             llMagnetic = view.findViewById(R.id.llMagnetic)
             llAzimuth = view.findViewById(R.id.llAzimuth)
             llArrowContainer = view.findViewById(R.id.llArrowContainer)
@@ -215,8 +213,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             try {
                                 val azimuth = azimuthStr.toFloat()
                                 if (azimuth in 0f..360f) {
-                                    val backAzimuth = (azimuth + 180) % 360
-                                    tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
+                                    // Valid azimuth
                                 }
                             } catch (e: NumberFormatException) {
                             }
@@ -245,8 +242,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             if (currentVal < 0f) currentVal += 360f
 
                             etAzimuth.setText(String.format("%.1f", currentVal))
-                            val backAzimuth = (currentVal + 180) % 360
-                            tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
                             etAzimuth.setSelection(etAzimuth.text.length)
                         }
                     } catch (e: Exception) {}
@@ -669,8 +664,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
         if (!cbManualAzimuth.isChecked || forceUpdateEditText) {
             etAzimuth.setText(String.format("%.1f", azimuthToDisplay))
-            val backAzimuth = (azimuthToDisplay + 180) % 360
-            tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
         }
     }
 
@@ -845,8 +838,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     if (displayAzimuth >= 360f) displayAzimuth -= 360f
                 }
                 etAzimuth.setText(String.format("%.1f", displayAzimuth))
-                val backAzimuth = (displayAzimuth + 180) % 360
-                tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
             } else {
                 // When sharing a NEW location with the app, ensure we start taking live sensor data immediately
                 val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
@@ -1011,8 +1002,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 }
 
                 etAzimuth.setText(String.format("%.1f", displayAzimuth))
-                val backAzimuth = (displayAzimuth + 180) % 360
-                tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
 
                 refreshUIForCurrentLocation()
 

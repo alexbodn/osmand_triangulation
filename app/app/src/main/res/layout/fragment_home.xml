@@ -121,31 +121,29 @@
             android:layout_height="0dp"
             android:layout_weight="1"/>
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnImport"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
-            android:drawableLeft="@drawable/ic_upload"
-            android:drawablePadding="8dp"
+            app:icon="@drawable/ic_upload"
             android:text="Import"
-            style="?android:attr/borderlessButtonStyle" />
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnShare"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:drawableLeft="@drawable/ic_share"
-            android:drawablePadding="8dp"
+            app:icon="@drawable/ic_share"
             android:text="Share"
-            style="?android:attr/borderlessButtonStyle" />
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
     </LinearLayout>
 
     <LinearLayout
         android:id="@+id/llMagnetic"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         app:layout_constraintEnd_toEndOf="parent"
@@ -158,14 +156,14 @@
             android:layout_height="wrap_content"
             android:text="Magnetic declination: 0.0°"
             android:textSize="14sp"
-            android:textColor="@android:color/holo_blue_dark" />
+            android:textColor="?attr/colorPrimary" />
 
-        <CheckBox
+        <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/cbMagnetic"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="apply"
+            android:text="Apply"
             android:checked="false" />
     </LinearLayout>
 
@@ -174,48 +172,36 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="16dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toTopOf="@id/llArrowContainer">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Azimuth "
-            android:textSize="16sp" />
-
-        <CheckBox
+        <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/cbManualAzimuth"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="manual "
+            android:text="Manual"
+            android:layout_marginEnd="16dp"
             android:checked="false" />
 
-        <EditText
-            android:id="@+id/etAzimuth"
-            android:layout_width="70dp"
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="120dp"
             android:layout_height="wrap_content"
-            android:inputType="numberDecimal"
-            android:imeOptions="actionDone"
-            android:textSize="16sp"
-            android:textAlignment="center" />
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+            android:hint="Azimuth (°)">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="° back "
-            android:textSize="16sp" />
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etAzimuth"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:imeOptions="actionDone"
+                android:textAlignment="center" />
 
-        <TextView
-            android:id="@+id/tvBackAzimuth"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0°"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+        </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 
     <LinearLayout
@@ -248,7 +234,7 @@
                 android:src="@drawable/ic_arrow_up"
                 android:clickable="true"
                 android:focusable="true"
-                app:tint="@android:color/holo_red_dark" />
+                app:tint="?attr/colorPrimary" />
 
             <TextView
                 android:id="@+id/tvSelectReadingText"
@@ -260,10 +246,10 @@
                 android:textSize="20sp"
                 android:textStyle="bold"
                 android:textColor="@android:color/white"
-                android:shadowColor="#000000"
-                android:shadowRadius="8"
-                android:shadowDx="2"
-                android:shadowDy="2" />
+                android:shadowColor="#66000000"
+                android:shadowRadius="4"
+                android:shadowDx="1"
+                android:shadowDy="1" />
         </FrameLayout>
 
         <LinearLayout

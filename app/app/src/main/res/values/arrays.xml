@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="intersection_modes">
-        <item>Direct</item>
-        <item>Reverse</item>
+        <item>Resection (reverse triangulation)</item>
+        <item>Intersection (direct triangulation)</item>
+        <item>Help</item>
     </string-array>
 </resources>

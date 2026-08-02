@@ -49,9 +49,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private lateinit var tvDeclination: TextView
     private lateinit var flSelectArea: android.widget.FrameLayout
     private lateinit var tvSelectReadingText: TextView
-    private lateinit var btnIntersection: View
+    private lateinit var btnIntersection: android.widget.Button
     private lateinit var spnIntersectionMode: android.widget.Spinner
-    private lateinit var tvIntersectionMode: TextView
     private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
 
@@ -112,7 +111,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             spnIntersectionMode = view.findViewById(R.id.spnIntersectionMode)
-            tvIntersectionMode = view.findViewById(R.id.tvIntersectionMode)
 
             var isInitialSpinnerSelection = true
 
@@ -126,9 +124,24 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
             spnIntersectionMode.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    val selectionText = parent?.getItemAtPosition(position).toString()
+                    val firstWord = selectionText.split(" ")[0]
+
+                    if (firstWord == "Help") {
+                        // Revert spinner to previous mode so button doesn't get stuck on "Help"
+                        val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+                        val prevMode = sharedPrefs.getInt("intersectionMode", 0)
+                        spnIntersectionMode.setSelection(prevMode)
+
+                        // Navigate to usage
+                        (activity as? com.example.triangulation.MainActivity)?.navigateToFragment(com.example.triangulation.ui.UsageFragment(), "Usage", R.id.nav_usage)
+                        return
+                    }
+
+                    btnIntersection.text = firstWord
+
                     val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
                     sharedPrefs.edit().putInt("intersectionMode", position).apply()
-                    tvIntersectionMode.text = parent?.getItemAtPosition(position).toString()
 
                     if (!isInitialSpinnerSelection) {
                         val target = calculateTarget()
@@ -617,7 +630,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private fun loadState() {
         val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
 
-        val mode = sharedPrefs.getInt("intersectionMode", 1) // Default to Reverse
+        val mode = sharedPrefs.getInt("intersectionMode", 0) // Default to Resection
         spnIntersectionMode.setSelection(mode)
 
         val isMagneticChecked = sharedPrefs.getBoolean("isMagneticChecked", false)
@@ -714,10 +727,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                             val bbox = doubleArrayOf(parts[0].toDouble(), parts[1].toDouble(), parts[2].toDouble(), parts[3].toDouble())
                             // Switch to locations tab
-                            (activity as? com.example.triangulation.MainActivity)?.let { mainActivity ->
-                                val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
-                                viewPager?.currentItem = 1
-                            }
+                            (activity as? com.example.triangulation.MainActivity)?.navigateToFragment(com.example.triangulation.ui.LocationsFragment(), "Library", R.id.nav_locations)
 
                             val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", android.content.Context.MODE_PRIVATE)
                             sharedPrefs.edit().putString("bbox_filter", bbox.joinToString(",")).apply()
@@ -748,10 +758,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             val parts = bboxStr.split(",")
                             if (parts.size >= 4) {
                                 val bbox = doubleArrayOf(parts[0].toDouble(), parts[1].toDouble(), parts[2].toDouble(), parts[3].toDouble())
-                                (activity as? com.example.triangulation.MainActivity)?.let { mainActivity ->
-                                    val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
-                                    viewPager?.currentItem = 1
-                                }
+                                (activity as? com.example.triangulation.MainActivity)?.navigateToFragment(com.example.triangulation.ui.LocationsFragment(), "Library", R.id.nav_locations)
                                 val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", android.content.Context.MODE_PRIVATE)
                                 sharedPrefs.edit().putString("bbox_filter", bbox.joinToString(",")).apply()
                                 val bboxIntent = Intent("com.example.triangulation.BBOX_FILTER")
@@ -859,11 +866,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
             updateBackAzimuthDisplay(true)
 
-            // Switch to Home tab
-            (activity as? com.example.triangulation.MainActivity)?.let { mainActivity ->
-                val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
-                viewPager?.currentItem = 0
-            }
+            // Ensure we are on Home tab
+            (activity as? com.example.triangulation.MainActivity)?.navigateToFragment(com.example.triangulation.ui.HomeFragment(), "Home", R.id.nav_home)
 
             intent?.removeExtra("lat")
             intent?.removeExtra("lon")
@@ -944,10 +948,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                         showVerboseToast("Imported $importedCount new locations.")
 
                         // Switch to locations tab
-                        (activity as? com.example.triangulation.MainActivity)?.let { mainActivity ->
-                            val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
-                            viewPager?.currentItem = 1
-                        }
+                        (activity as? com.example.triangulation.MainActivity)?.navigateToFragment(com.example.triangulation.ui.LocationsFragment(), "Library", R.id.nav_locations)
                         val refreshIntent = Intent("com.example.triangulation.REFRESH_LIBRARY")
                         requireContext().sendBroadcast(refreshIntent)
                     }

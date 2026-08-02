@@ -3,40 +3,84 @@ package com.example.triangulation
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.MenuItem
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.tabs.TabLayoutMediator
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.view.GravityCompat
+import androidx.fragment.app.Fragment
 import com.example.triangulation.databinding.ActivityMainBinding
-import com.example.triangulation.ui.ViewPagerAdapter
 import com.example.triangulation.ui.HomeFragment
+import com.example.triangulation.ui.LocationsFragment
+import com.example.triangulation.ui.SettingsFragment
+import com.example.triangulation.ui.UsageFragment
+import com.google.android.material.navigation.NavigationView
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val sharedPrefs = getSharedPreferences("triangulation_prefs", android.content.Context.MODE_PRIVATE)
+        val savedTheme = sharedPrefs.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        AppCompatDelegate.setDefaultNightMode(savedTheme)
+
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val adapter = ViewPagerAdapter(this)
-        binding.viewPager.adapter = adapter
+        setSupportActionBar(binding.toolbar)
 
+        val toggle = ActionBarDrawerToggle(
+            this, binding.drawerLayout, binding.toolbar,
+            R.string.navigation_drawer_open, R.string.navigation_drawer_close
+        )
+        binding.drawerLayout.addDrawerListener(toggle)
+        toggle.syncState()
 
-        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
-            tab.text = when (position) {
-                0 -> "Home"
-                1 -> "Locations"
-                2 -> "Settings"
-                3 -> "Usage"
-                else -> null
-            }
-        }.attach()
+        binding.navView.setNavigationItemSelectedListener(this)
 
-        val sharedPrefs = getSharedPreferences("triangulation_prefs", android.content.Context.MODE_PRIVATE)
         val isFirstRun = sharedPrefs.getBoolean("isFirstRun", true)
-        if (isFirstRun) {
-            sharedPrefs.edit().putBoolean("isFirstRun", false).apply()
-            binding.viewPager.setCurrentItem(3, false)
+
+        if (savedInstanceState == null) {
+            if (isFirstRun) {
+                sharedPrefs.edit().putBoolean("isFirstRun", false).apply()
+                navigateToFragment(UsageFragment(), "Usage", R.id.nav_usage)
+            } else {
+                navigateToFragment(HomeFragment(), "Home", R.id.nav_home)
+            }
+        }
+    }
+
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.nav_home -> navigateToFragment(HomeFragment(), "Home", R.id.nav_home)
+            R.id.nav_locations -> navigateToFragment(LocationsFragment(), "Library", R.id.nav_locations)
+            R.id.nav_settings -> navigateToFragment(SettingsFragment(), "Settings", R.id.nav_settings)
+            R.id.nav_usage -> navigateToFragment(UsageFragment(), "Usage", R.id.nav_usage)
+        }
+        binding.drawerLayout.closeDrawer(GravityCompat.START)
+        return true
+    }
+
+    fun navigateToFragment(fragment: Fragment, title: String? = null, navId: Int? = null) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .commit()
+
+        if (title != null) {
+            supportActionBar?.title = title
+        }
+        if (navId != null) {
+            binding.navView.setCheckedItem(navId)
+        }
+    }
+
+    override fun onBackPressed() {
+        if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
+        } else {
+            super.onBackPressed()
         }
     }
 

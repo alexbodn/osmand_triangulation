@@ -364,9 +364,9 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                             var zoom = 15
                                             if (maxDeltaLon > 0) {
                                                 // Formula: zoom = log2(360 * screenWidth / (256 * deltaLon))
-                                                // We approximate screenWidth to 300 to ensure padding
-                                                val deltaLon = maxDeltaLon * 2.5 // Add buffer
-                                                val calculatedZoom = Math.max(0.0, Math.min(20.0, Math.log(360.0 * 300.0 / (256.0 * deltaLon)) / Math.log(2.0))).toInt()
+                                                val screenWidthDp = resources.displayMetrics.widthPixels / resources.displayMetrics.density
+                                                val deltaLon = maxDeltaLon * 1.2 // Add buffer
+                                                val calculatedZoom = Math.max(0.0, Math.min(20.0, Math.log(360.0 * screenWidthDp / (256.0 * deltaLon)) / Math.log(2.0))).toInt()
                                                 zoom = calculatedZoom
                                             }
 
@@ -424,9 +424,9 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     var zoom = 15
                     if (maxDeltaLon > 0) {
                         // Formula: zoom = log2(360 * screenWidth / (256 * deltaLon))
-                        // We approximate screenWidth to 300 to ensure padding
-                        val deltaLon = maxDeltaLon * 2.5 // Add buffer
-                        val calculatedZoom = Math.max(0.0, Math.min(20.0, Math.log(360.0 * 300.0 / (256.0 * deltaLon)) / Math.log(2.0))).toInt()
+                        val screenWidthDp = resources.displayMetrics.widthPixels / resources.displayMetrics.density
+                        val deltaLon = maxDeltaLon * 1.2 // Add buffer
+                        val calculatedZoom = Math.max(0.0, Math.min(20.0, Math.log(360.0 * screenWidthDp / (256.0 * deltaLon)) / Math.log(2.0))).toInt()
                         zoom = calculatedZoom
                     }
 

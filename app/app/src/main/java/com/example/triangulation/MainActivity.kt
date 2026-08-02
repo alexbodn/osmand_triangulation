@@ -22,7 +22,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val sharedPrefs = getSharedPreferences("triangulation_prefs", android.content.Context.MODE_PRIVATE)
-        val savedTheme = sharedPrefs.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        var savedTheme = sharedPrefs.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        if (savedTheme == 0) { // Fix legacy MODE_NIGHT_AUTO_TIME
+            savedTheme = AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+        }
         AppCompatDelegate.setDefaultNightMode(savedTheme)
 
         super.onCreate(savedInstanceState)

@@ -354,30 +354,16 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                             val targetLat = cog.first
                                             val targetLon = cog.second
 
-                                            // The area to accommodate should have a radius equal to the max distance from the target to any observation
-                                            var maxDeltaLon = 0.001
-                                            var maxDeltaLat = 0.001
+                                            // Calculate maximum radius in kilometers from target to any reading
+                                            var maxDistanceKm = 0.5 // minimum zoom scale bound
                                             for (reading in selectedLocations) {
-                                                val dLon = Math.abs(reading.lon - targetLon)
-                                                val dLat = Math.abs(reading.lat - targetLat)
-                                                if (dLon > maxDeltaLon) maxDeltaLon = dLon
-                                                if (dLat > maxDeltaLat) maxDeltaLat = dLat
+                                                val dKm = calculateDistance(targetLat, targetLon, reading.lat, reading.lon)
+                                                if (dKm > maxDistanceKm) maxDistanceKm = dKm
                                             }
 
-                                            var zoom = 15
-                                            if (maxDeltaLon > 0) {
-                                                val screenWidthDp = resources.displayMetrics.widthPixels / resources.displayMetrics.density
-                                                val screenHeightDp = resources.displayMetrics.heightPixels / resources.displayMetrics.density
-
-                                                val deltaLon = maxDeltaLon * 1.0
-                                                val deltaLat = maxDeltaLat * 1.0
-
-                                                val zoomLon = Math.log(360.0 * screenWidthDp / (256.0 * deltaLon)) / Math.log(2.0)
-                                                val zoomLat = Math.log(180.0 * screenHeightDp / (256.0 * deltaLat)) / Math.log(2.0)
-
-                                                val calculatedZoom = Math.max(0.0, Math.min(20.0, Math.min(zoomLon, zoomLat))).toInt()
-                                                zoom = calculatedZoom
-                                            }
+                                            // Zoom level heuristic: +1 zoom zooms in by 2x
+                                            val zoomDouble = 16.0 - (Math.log(maxDistanceKm / 0.5) / Math.log(2.0))
+                                            val zoom = Math.max(2.0, Math.min(20.0, zoomDouble)).toInt()
 
                                             val uri = android.net.Uri.parse("geo:${targetLat},${targetLon}?z=${zoom}")
                                             val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
@@ -422,31 +408,16 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     val finalLat = targetLat
                     val finalLon = targetLon
 
-                    // Calculate bounding box zoom around the target encompassing all readings
-                    // The area to accommodate should have a radius equal to the max distance from the target to any observation
-                    var maxDeltaLon = 0.001
-                    var maxDeltaLat = 0.001
+                    // Calculate maximum radius in kilometers from target to any reading
+                    var maxDistanceKm = 0.5 // minimum zoom scale bound
                     for (reading in selectedLocations) {
-                        val dLon = Math.abs(reading.lon - finalLon)
-                        val dLat = Math.abs(reading.lat - finalLat)
-                        if (dLon > maxDeltaLon) maxDeltaLon = dLon
-                        if (dLat > maxDeltaLat) maxDeltaLat = dLat
+                        val dKm = calculateDistance(finalLat, finalLon, reading.lat, reading.lon)
+                        if (dKm > maxDistanceKm) maxDistanceKm = dKm
                     }
 
-                    var zoom = 15
-                    if (maxDeltaLon > 0) {
-                        val screenWidthDp = resources.displayMetrics.widthPixels / resources.displayMetrics.density
-                        val screenHeightDp = resources.displayMetrics.heightPixels / resources.displayMetrics.density
-
-                        val deltaLon = maxDeltaLon * 1.0
-                        val deltaLat = maxDeltaLat * 1.0
-
-                        val zoomLon = Math.log(360.0 * screenWidthDp / (256.0 * deltaLon)) / Math.log(2.0)
-                        val zoomLat = Math.log(180.0 * screenHeightDp / (256.0 * deltaLat)) / Math.log(2.0)
-
-                        val calculatedZoom = Math.max(0.0, Math.min(20.0, Math.min(zoomLon, zoomLat))).toInt()
-                        zoom = calculatedZoom
-                    }
+                    // Zoom level heuristic: +1 zoom zooms in by 2x
+                    val zoomDouble = 16.0 - (Math.log(maxDistanceKm / 0.5) / Math.log(2.0))
+                    val zoom = Math.max(2.0, Math.min(20.0, zoomDouble)).toInt()
 
                     val uri = android.net.Uri.parse("geo:${finalLat},${finalLon}?z=${zoom}")
                     val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)

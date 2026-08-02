@@ -43,11 +43,16 @@ class SettingsFragment : Fragment() {
 
         cbVerbose.isChecked = sharedPrefs.getBoolean("verbose_mode", false)
 
-        val savedTheme = sharedPrefs.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        var savedTheme = sharedPrefs.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        // Clean up legacy auto time setting if it exists
+        if (savedTheme == 0) { // MODE_NIGHT_AUTO_TIME is 0
+            savedTheme = AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            sharedPrefs.edit().putInt("theme_mode", savedTheme).apply()
+        }
+
         when (savedTheme) {
             AppCompatDelegate.MODE_NIGHT_NO -> rgTheme.check(R.id.rbThemeLight)
             AppCompatDelegate.MODE_NIGHT_YES -> rgTheme.check(R.id.rbThemeDark)
-            AppCompatDelegate.MODE_NIGHT_AUTO_TIME -> rgTheme.check(R.id.rbThemeAuto)
             else -> rgTheme.check(R.id.rbThemeSystem)
         }
 
@@ -55,7 +60,6 @@ class SettingsFragment : Fragment() {
             val mode = when (checkedId) {
                 R.id.rbThemeLight -> AppCompatDelegate.MODE_NIGHT_NO
                 R.id.rbThemeDark -> AppCompatDelegate.MODE_NIGHT_YES
-                R.id.rbThemeAuto -> AppCompatDelegate.MODE_NIGHT_AUTO_TIME
                 else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
             }
             sharedPrefs.edit().putInt("theme_mode", mode).apply()

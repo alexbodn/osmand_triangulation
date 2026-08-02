@@ -364,6 +364,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                             // Zoom level heuristic: +1 zoom zooms in by 2x
                                             val zoomDouble = 16.0 - (Math.log(maxDistanceKm / 0.5) / Math.log(2.0))
                                             val zoom = Math.max(2.0, Math.min(20.0, zoomDouble)).toInt()
+                                            showVerboseToast("Zoom level calculated: $zoom")
 
                                             val uri = android.net.Uri.parse("geo:${targetLat},${targetLon}?z=${zoom}")
                                             val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
@@ -418,6 +419,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     // Zoom level heuristic: +1 zoom zooms in by 2x
                     val zoomDouble = 16.0 - (Math.log(maxDistanceKm / 0.5) / Math.log(2.0))
                     val zoom = Math.max(2.0, Math.min(20.0, zoomDouble)).toInt()
+                    showVerboseToast("Zoom level calculated: $zoom")
 
                     val uri = android.net.Uri.parse("geo:${finalLat},${finalLon}?z=${zoom}")
                     val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)

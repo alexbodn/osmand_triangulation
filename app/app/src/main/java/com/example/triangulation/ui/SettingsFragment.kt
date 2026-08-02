@@ -47,6 +47,7 @@ class SettingsFragment : Fragment() {
         when (savedTheme) {
             AppCompatDelegate.MODE_NIGHT_NO -> rgTheme.check(R.id.rbThemeLight)
             AppCompatDelegate.MODE_NIGHT_YES -> rgTheme.check(R.id.rbThemeDark)
+            AppCompatDelegate.MODE_NIGHT_AUTO_TIME -> rgTheme.check(R.id.rbThemeAuto)
             else -> rgTheme.check(R.id.rbThemeSystem)
         }
 
@@ -54,6 +55,7 @@ class SettingsFragment : Fragment() {
             val mode = when (checkedId) {
                 R.id.rbThemeLight -> AppCompatDelegate.MODE_NIGHT_NO
                 R.id.rbThemeDark -> AppCompatDelegate.MODE_NIGHT_YES
+                R.id.rbThemeAuto -> AppCompatDelegate.MODE_NIGHT_AUTO_TIME
                 else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
             }
             sharedPrefs.edit().putInt("theme_mode", mode).apply()

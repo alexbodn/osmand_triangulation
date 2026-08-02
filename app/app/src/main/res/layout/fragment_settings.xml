@@ -106,6 +106,12 @@
                 android:text="System Default" />
 
             <RadioButton
+                android:id="@+id/rbThemeAuto"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Auto (Sunrise/Sunset)" />
+
+            <RadioButton
                 android:id="@+id/rbThemeLight"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

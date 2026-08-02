@@ -356,17 +356,26 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                                             // The area to accommodate should have a radius equal to the max distance from the target to any observation
                                             var maxDeltaLon = 0.001
+                                            var maxDeltaLat = 0.001
                                             for (reading in selectedLocations) {
                                                 val dLon = Math.abs(reading.lon - targetLon)
+                                                val dLat = Math.abs(reading.lat - targetLat)
                                                 if (dLon > maxDeltaLon) maxDeltaLon = dLon
+                                                if (dLat > maxDeltaLat) maxDeltaLat = dLat
                                             }
 
                                             var zoom = 15
                                             if (maxDeltaLon > 0) {
-                                                // Formula: zoom = log2(360 * screenWidth / (256 * deltaLon))
                                                 val screenWidthDp = resources.displayMetrics.widthPixels / resources.displayMetrics.density
-                                                val deltaLon = maxDeltaLon * 1.2 // Add buffer
-                                                val calculatedZoom = Math.max(0.0, Math.min(20.0, Math.log(360.0 * screenWidthDp / (256.0 * deltaLon)) / Math.log(2.0))).toInt()
+                                                val screenHeightDp = resources.displayMetrics.heightPixels / resources.displayMetrics.density
+
+                                                val deltaLon = maxDeltaLon * 2.0
+                                                val deltaLat = maxDeltaLat * 2.0
+
+                                                val zoomLon = Math.log(360.0 * screenWidthDp / (256.0 * deltaLon)) / Math.log(2.0)
+                                                val zoomLat = Math.log(180.0 * screenHeightDp / (256.0 * deltaLat)) / Math.log(2.0)
+
+                                                val calculatedZoom = Math.max(0.0, Math.min(20.0, Math.min(zoomLon, zoomLat))).toInt()
                                                 zoom = calculatedZoom
                                             }
 
@@ -416,17 +425,26 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     // Calculate bounding box zoom around the target encompassing all readings
                     // The area to accommodate should have a radius equal to the max distance from the target to any observation
                     var maxDeltaLon = 0.001
+                    var maxDeltaLat = 0.001
                     for (reading in selectedLocations) {
                         val dLon = Math.abs(reading.lon - finalLon)
+                        val dLat = Math.abs(reading.lat - finalLat)
                         if (dLon > maxDeltaLon) maxDeltaLon = dLon
+                        if (dLat > maxDeltaLat) maxDeltaLat = dLat
                     }
 
                     var zoom = 15
                     if (maxDeltaLon > 0) {
-                        // Formula: zoom = log2(360 * screenWidth / (256 * deltaLon))
                         val screenWidthDp = resources.displayMetrics.widthPixels / resources.displayMetrics.density
-                        val deltaLon = maxDeltaLon * 1.2 // Add buffer
-                        val calculatedZoom = Math.max(0.0, Math.min(20.0, Math.log(360.0 * screenWidthDp / (256.0 * deltaLon)) / Math.log(2.0))).toInt()
+                        val screenHeightDp = resources.displayMetrics.heightPixels / resources.displayMetrics.density
+
+                        val deltaLon = maxDeltaLon * 2.0
+                        val deltaLat = maxDeltaLat * 2.0
+
+                        val zoomLon = Math.log(360.0 * screenWidthDp / (256.0 * deltaLon)) / Math.log(2.0)
+                        val zoomLat = Math.log(180.0 * screenHeightDp / (256.0 * deltaLat)) / Math.log(2.0)
+
+                        val calculatedZoom = Math.max(0.0, Math.min(20.0, Math.min(zoomLon, zoomLat))).toInt()
                         zoom = calculatedZoom
                     }
 

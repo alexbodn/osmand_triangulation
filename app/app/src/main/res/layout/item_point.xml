@@ -23,8 +23,9 @@
             android:padding="8dp"
             android:drawableStart="@drawable/ic_compass"
             android:drawablePadding="4dp"
+            app:drawableTint="?attr/colorOnSurface"
             android:gravity="center_vertical"
-            android:textSize="16sp"
+            android:textSize="14sp"
             android:textStyle="bold"
             android:textColor="?attr/colorPrimary"
             android:background="?attr/selectableItemBackground"
@@ -68,6 +69,7 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:src="@drawable/ic_edit"
+                app:tint="?attr/colorOnSurface"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Edit description" />
         </LinearLayout>
@@ -91,6 +93,7 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:src="@drawable/ic_library_add"
+        app:tint="?attr/colorOnSurface"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="Add to library" />
 
@@ -99,6 +102,7 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:src="@drawable/ic_map"
+        app:tint="?attr/colorOnSurface"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="View on map" />
 

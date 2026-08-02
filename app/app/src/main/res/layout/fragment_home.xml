@@ -75,19 +75,19 @@
                 android:gravity="center_vertical"
                 android:background="@drawable/bg_split_button">
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnIntersection"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
-                    android:drawableLeft="@drawable/ic_map"
-                    android:drawablePadding="4dp"
+                    app:icon="@drawable/ic_map"
                     android:paddingStart="8dp"
                     android:paddingEnd="4dp"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
                     android:text="TARGET"
                     android:textSize="14sp"
-                    android:background="@android:color/transparent"
+                    app:backgroundTint="@android:color/transparent"
+                    android:textColor="?attr/colorPrimary"
+                    app:iconTint="?attr/colorPrimary"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:enabled="false" />
 
                 <View

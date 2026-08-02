@@ -51,6 +51,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private lateinit var tvSelectReadingText: TextView
     private lateinit var btnIntersection: android.widget.Button
     private lateinit var spnIntersectionMode: android.widget.Spinner
+    private lateinit var tvIntersectionMode: TextView
     private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
 
@@ -111,6 +112,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             spnIntersectionMode = view.findViewById(R.id.spnIntersectionMode)
+            tvIntersectionMode = view.findViewById(R.id.tvIntersectionMode)
 
             var isInitialSpinnerSelection = true
 
@@ -138,7 +140,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                         return
                     }
 
-                    btnIntersection.text = firstWord
+                    tvIntersectionMode.text = firstWord
 
                     val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
                     sharedPrefs.edit().putInt("intersectionMode", position).apply()
@@ -352,7 +354,20 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                             val targetLat = cog.first
                                             val targetLon = cog.second
 
-                                            val uri = android.net.Uri.parse("geo:${targetLat},${targetLon}?z=15")
+                                            var maxDistKm = 0.0
+                                            for (reading in selectedLocations) {
+                                                val dist = calculateDistance(targetLat, targetLon, reading.lat, reading.lon)
+                                                if (dist > maxDistKm) maxDistKm = dist
+                                            }
+
+                                            var zoom = 15
+                                            if (maxDistKm > 0) {
+                                                val screenWidthKm = maxDistKm * 2.5
+                                                val calculatedZoom = Math.max(0.0, Math.min(20.0, Math.log(40000.0 / screenWidthKm) / Math.log(2.0))).toInt()
+                                                zoom = calculatedZoom
+                                            }
+
+                                            val uri = android.net.Uri.parse("geo:${targetLat},${targetLon}?z=${zoom}")
                                             val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
                                             coldIntent.setPackage("net.osmand.plus")
                                             coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
@@ -367,7 +382,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                                             Thread {
                                                 Thread.sleep(300)
-                                                if (!osmandHelper.setMapLocation(targetLat, targetLon, 15)) {
+                                                if (!osmandHelper.setMapLocation(targetLat, targetLon, zoom)) {
                                                     // Silent fallback, the intent should have worked
                                                 }
                                             }.start()
@@ -395,7 +410,29 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     val finalLat = targetLat
                     val finalLon = targetLon
 
-                    val uri = android.net.Uri.parse("geo:${finalLat},${finalLon}?z=15")
+                    // Calculate bounding box zoom around the target encompassing all readings
+                    var maxDistKm = 0.0
+                    for (reading in selectedLocations) {
+                        val dist = calculateDistance(finalLat, finalLon, reading.lat, reading.lon)
+                        if (dist > maxDistKm) maxDistKm = dist
+                    }
+
+                    // Convert max distance to zoom level (rough approximation for OsmAnd)
+                    // At equator, zoom 0 is ~40000km width. Zoom increases by power of 2.
+                    // Map width is roughly 40000 / 2^zoom km.
+                    // We want our maxDist (radius) * 2 to fit within the screen.
+                    // 2 * maxDist = 40000 / 2^zoom
+                    // 2^zoom = 40000 / (2 * maxDist)
+                    // zoom = log2(40000 / (2 * maxDist))
+                    // Let's add a small buffer (+1 zoom out) to ensure margins.
+                    var zoom = 15
+                    if (maxDistKm > 0) {
+                        val screenWidthKm = maxDistKm * 2.5 // Added margin
+                        val calculatedZoom = Math.max(0.0, Math.min(20.0, Math.log(40000.0 / screenWidthKm) / Math.log(2.0))).toInt()
+                        zoom = calculatedZoom
+                    }
+
+                    val uri = android.net.Uri.parse("geo:${finalLat},${finalLon}?z=${zoom}")
                     val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
                     coldIntent.setPackage("net.osmand.plus")
                     coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
@@ -410,7 +447,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                     Thread {
                         Thread.sleep(300)
-                        if (!osmandHelper.setMapLocation(finalLat, finalLon, 15)) {
+                        if (!osmandHelper.setMapLocation(finalLat, finalLon, zoom)) {
                             // Silent fallback, intent should handle it
                         }
                     }.start()
@@ -1277,7 +1314,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         val lat1 = Math.toRadians(r1.lat)
         val lon1 = Math.toRadians(r1.lon)
         val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
-        val isReverseMode = sharedPrefs.getInt("intersectionMode", 1) == 1
+        val isReverseMode = sharedPrefs.getInt("intersectionMode", 0) == 0 // Index 0 is Resection (Reverse)
         val brng1 = if (isReverseMode) Math.toRadians(r1.backAzimuth.toDouble()) else Math.toRadians(r1.azimuth.toDouble())
 
         val lat2 = Math.toRadians(r2.lat)
@@ -1489,7 +1526,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             // Thread safe: pass mode via parameter or calculate before thread
-            val isReverseMode = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE).getInt("intersectionMode", 1) == 1
+            val isReverseMode = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE).getInt("intersectionMode", 0) == 0
             val bearing = if (isReverseMode) reading.backAzimuth.toDouble() else reading.azimuth.toDouble()
             val point2 = calculateDestination(reading.lat, reading.lon, bearing, dist)
 

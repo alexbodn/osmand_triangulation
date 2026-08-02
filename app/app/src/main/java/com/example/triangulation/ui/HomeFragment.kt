@@ -369,8 +369,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                                 val screenWidthDp = resources.displayMetrics.widthPixels / resources.displayMetrics.density
                                                 val screenHeightDp = resources.displayMetrics.heightPixels / resources.displayMetrics.density
 
-                                                val deltaLon = maxDeltaLon * 2.0
-                                                val deltaLat = maxDeltaLat * 2.0
+                                                val deltaLon = maxDeltaLon * 1.0
+                                                val deltaLat = maxDeltaLat * 1.0
 
                                                 val zoomLon = Math.log(360.0 * screenWidthDp / (256.0 * deltaLon)) / Math.log(2.0)
                                                 val zoomLat = Math.log(180.0 * screenHeightDp / (256.0 * deltaLat)) / Math.log(2.0)
@@ -438,8 +438,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                         val screenWidthDp = resources.displayMetrics.widthPixels / resources.displayMetrics.density
                         val screenHeightDp = resources.displayMetrics.heightPixels / resources.displayMetrics.density
 
-                        val deltaLon = maxDeltaLon * 2.0
-                        val deltaLat = maxDeltaLat * 2.0
+                        val deltaLon = maxDeltaLon * 1.0
+                        val deltaLat = maxDeltaLat * 1.0
 
                         val zoomLon = Math.log(360.0 * screenWidthDp / (256.0 * deltaLon)) / Math.log(2.0)
                         val zoomLat = Math.log(180.0 * screenHeightDp / (256.0 * deltaLat)) / Math.log(2.0)

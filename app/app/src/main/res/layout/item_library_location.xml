@@ -48,6 +48,7 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:src="@drawable/ic_edit"
+                app:tint="?attr/colorOnSurface"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Edit description" />
         </LinearLayout>
@@ -65,6 +66,7 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:src="@drawable/ic_compass"
+        app:tint="?attr/colorOnSurface"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="Point to location" />
 
@@ -73,6 +75,7 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:src="@drawable/ic_map"
+        app:tint="?attr/colorOnSurface"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="View on map" />
 

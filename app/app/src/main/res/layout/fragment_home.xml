@@ -85,10 +85,10 @@
                     android:textSize="14sp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
-                    app:backgroundTint="@android:color/transparent"
-                    android:textColor="?attr/colorPrimary"
-                    app:iconTint="?attr/colorPrimary"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
+
+
+
+
                     android:enabled="false" />
 
                 <View
@@ -128,7 +128,7 @@
             android:layout_marginEnd="8dp"
             app:icon="@drawable/ic_upload"
             android:text="Import"
-            style="@style/Widget.MaterialComponents.Button.TextButton" />
+             />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnShare"
@@ -136,7 +136,7 @@
             android:layout_height="wrap_content"
             app:icon="@drawable/ic_share"
             android:text="Share"
-            style="@style/Widget.MaterialComponents.Button.TextButton" />
+             />
     </LinearLayout>
 
     <LinearLayout
@@ -156,7 +156,7 @@
             android:layout_height="wrap_content"
             android:text="Magnetic declination: 0.0°"
             android:textSize="14sp"
-            android:textColor="?attr/colorPrimary" />
+             />
 
         <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/cbMagnetic"

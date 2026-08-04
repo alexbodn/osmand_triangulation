@@ -175,21 +175,35 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 } else false
             }
 
+            var isEditingAzimuth = false
+            etAzimuth.setOnFocusChangeListener { _, hasFocus ->
+                isEditingAzimuth = hasFocus
+                if (hasFocus) {
+                    view.findViewById<View>(R.id.svPoints).visibility = View.GONE
+                    view.findViewById<View>(R.id.llArrowContainer).visibility = View.VISIBLE
+                } else {
+                    view.findViewById<View>(R.id.svPoints).visibility = View.VISIBLE
+                    view.findViewById<View>(R.id.llArrowContainer).visibility = View.VISIBLE
+                }
+            }
+
             com.example.triangulation.KeyboardUtils.addKeyboardVisibilityListener(view) { isKeyboardShowing ->
                 val hasLocation = currentLat != null && currentLon != null
                 if (isKeyboardShowing) {
                     view.findViewById<View>(R.id.llPointsHeader).visibility = View.GONE
-                    view.findViewById<View>(R.id.svPoints).visibility = View.GONE
                     view.findViewById<View>(R.id.llListActions).visibility = View.GONE
                     view.findViewById<View>(R.id.llMagnetic).visibility = if (hasLocation) View.VISIBLE else View.GONE
+                    view.findViewById<View>(R.id.svPoints).visibility = View.GONE
+                    view.findViewById<View>(R.id.llArrowContainer).visibility = View.VISIBLE
                 } else {
                     view.findViewById<View>(R.id.llPointsHeader).visibility = View.VISIBLE
-                    view.findViewById<View>(R.id.svPoints).visibility = View.VISIBLE
                     view.findViewById<View>(R.id.llListActions).visibility = View.VISIBLE
-
                     view.findViewById<View>(R.id.llMagnetic).visibility = if (hasLocation) View.VISIBLE else View.GONE
-
-                    etAzimuth.clearFocus()
+                    if (isEditingAzimuth) {
+                        etAzimuth.clearFocus()
+                    }
+                    view.findViewById<View>(R.id.svPoints).visibility = View.VISIBLE
+                    view.findViewById<View>(R.id.llArrowContainer).visibility = View.VISIBLE
                 }
             }
 
@@ -362,7 +376,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                             }
 
                                             // Zoom level heuristic: +1 zoom zooms in by 2x
-                                            val zoomDouble = 16.0 - (Math.log(maxDistanceKm / 0.5) / Math.log(2.0))
+                                            val zoomDouble = 17.0 - (Math.log(maxDistanceKm / 0.5) / Math.log(2.0))
                                             val zoom = Math.max(2.0, Math.min(20.0, zoomDouble)).toInt()
                                             showVerboseToast("Zoom level calculated: $zoom")
 
@@ -417,7 +431,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     }
 
                     // Zoom level heuristic: +1 zoom zooms in by 2x
-                    val zoomDouble = 16.0 - (Math.log(maxDistanceKm / 0.5) / Math.log(2.0))
+                    val zoomDouble = 17.0 - (Math.log(maxDistanceKm / 0.5) / Math.log(2.0))
                     val zoom = Math.max(2.0, Math.min(20.0, zoomDouble)).toInt()
                     showVerboseToast("Zoom level calculated: $zoom")
 

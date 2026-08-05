@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:gravity="top"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -54,7 +54,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:gravity="top"
         android:paddingEnd="8dp"
         android:paddingBottom="8dp"
         app:layout_constraintBottom_toTopOf="@id/llMagnetic"
@@ -65,14 +65,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:gravity="center"
+            android:gravity="center_horizontal|top"
             android:layout_marginStart="8dp">
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
+                android:gravity="top"
                 android:background="@drawable/bg_split_button">
 
                 <com.google.android.material.button.MaterialButton
@@ -88,6 +88,9 @@
                     android:textSize="12sp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:textColor="@android:color/white"
+                    app:iconTint="@android:color/white"
                     android:enabled="false" />
 
                 <View
@@ -95,7 +98,7 @@
                     android:layout_height="match_parent"
                     android:layout_marginTop="8dp"
                     android:layout_marginBottom="8dp"
-                    android:background="#CCCCCC"/>
+                    android:background="#88FFFFFF"/>
 
                 <Spinner
                     android:id="@+id/spnIntersectionMode"
@@ -128,12 +131,16 @@
             android:minHeight="48dp"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:layout_marginEnd="4dp"
             app:icon="@drawable/ic_upload"
             android:textSize="12sp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
             android:text="Import" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnShare"
@@ -143,6 +150,7 @@
             android:minHeight="48dp"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
+            android:layout_marginEnd="8dp"
             app:icon="@drawable/ic_share"
             android:textSize="12sp"
             android:insetTop="0dp"
@@ -156,7 +164,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:gravity="top"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toTopOf="@id/llAzimuth">
@@ -185,7 +193,7 @@
         android:layout_marginTop="8dp"
         android:layout_marginBottom="16dp"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:gravity="top"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toTopOf="@id/llArrowContainer">
@@ -268,7 +276,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
+            android:gravity="top"
             android:layout_marginTop="8dp">
 
             <ImageView

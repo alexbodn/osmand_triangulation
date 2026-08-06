@@ -51,8 +51,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private lateinit var tvSelectReadingText: TextView
     private lateinit var btnIntersection: android.widget.Button
     private lateinit var spnIntersectionMode: android.widget.Spinner
-    private lateinit var tvIntersectionMode: TextView
-    private lateinit var cbMagnetic: CheckBox
+        private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
 
     private lateinit var ivAccuracyIcon: android.widget.ImageView
@@ -112,7 +111,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             spnIntersectionMode = view.findViewById(R.id.spnIntersectionMode)
-            tvIntersectionMode = view.findViewById(R.id.tvIntersectionMode)
 
             var isInitialSpinnerSelection = true
 
@@ -140,7 +138,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                         return
                     }
 
-                    tvIntersectionMode.text = firstWord
+                    btnIntersection.text = firstWord.uppercase()
 
                     val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
                     sharedPrefs.edit().putInt("intersectionMode", position).apply()

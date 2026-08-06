@@ -84,13 +84,13 @@
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp"
                     app:icon="@drawable/ic_map"
-                    android:text="TARGET"
+                    android:text="RESECTION"
                     android:textSize="12sp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:textColor="@android:color/white"
-                    app:iconTint="@android:color/white"
+                    android:textColor="?attr/colorOnPrimary"
+                    app:iconTint="?attr/colorOnPrimary"
                     android:enabled="false" />
 
                 <View
@@ -98,7 +98,7 @@
                     android:layout_height="match_parent"
                     android:layout_marginTop="8dp"
                     android:layout_marginBottom="8dp"
-                    android:background="#88FFFFFF"/>
+                    android:background="?attr/colorOnPrimary"/>
 
                 <Spinner
                     android:id="@+id/spnIntersectionMode"
@@ -109,13 +109,7 @@
                     android:background="@drawable/bg_spinner_tight" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tvIntersectionMode"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="10sp"
-                android:layout_marginTop="-2dp"
-                android:text="Resection" />
+
         </LinearLayout>
 
         <View
@@ -135,6 +129,8 @@
             android:textSize="12sp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
+            android:textColor="?attr/colorOnPrimary"
+            app:iconTint="?attr/colorOnPrimary"
             android:text="Import" />
 
         <View
@@ -155,6 +151,8 @@
             android:textSize="12sp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
+            android:textColor="?attr/colorOnPrimary"
+            app:iconTint="?attr/colorOnPrimary"
             android:text="Share" />
     </LinearLayout>
 

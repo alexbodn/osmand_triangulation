@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:gravity="top"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -54,7 +54,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:gravity="top"
         android:paddingEnd="8dp"
         android:paddingBottom="8dp"
         app:layout_constraintBottom_toTopOf="@id/llMagnetic"
@@ -65,55 +65,51 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:gravity="center"
+            android:gravity="center_horizontal|top"
             android:layout_marginStart="8dp">
 
             <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
+                android:gravity="top"
                 android:background="@drawable/bg_split_button">
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnIntersection"
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:drawableLeft="@drawable/ic_map"
-                    android:drawablePadding="4dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="4dp"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:text="Intersect"
-                    android:textSize="14sp"
-                    android:background="@android:color/transparent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:minWidth="48dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    app:icon="@drawable/ic_map"
+                    android:text="RESECTION"
+                    android:textSize="12sp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:textColor="?attr/colorOnPrimary"
+                    app:iconTint="?attr/colorOnPrimary"
                     android:enabled="false" />
 
                 <View
                     android:layout_width="1dp"
                     android:layout_height="match_parent"
-                    android:layout_marginTop="4dp"
-                    android:layout_marginBottom="4dp"
-                    android:background="#CCCCCC"/>
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="?attr/colorOnPrimary"/>
 
                 <Spinner
                     android:id="@+id/spnIntersectionMode"
-                    android:layout_width="24dp"
+                    android:layout_width="32dp"
                     android:layout_height="match_parent"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
+                    android:minHeight="48dp"
                     android:padding="0dp"
                     android:background="@drawable/bg_spinner_tight" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tvIntersectionMode"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="10sp"
-                android:layout_marginTop="-2dp"
-                android:text="Reverse" />
+
         </LinearLayout>
 
         <View
@@ -121,33 +117,52 @@
             android:layout_height="0dp"
             android:layout_weight="1"/>
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnImport"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:drawableLeft="@drawable/ic_upload"
-            android:drawablePadding="8dp"
-            android:text="Import"
-            style="?android:attr/borderlessButtonStyle" />
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            app:icon="@drawable/ic_upload"
+            android:textSize="12sp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:textColor="?attr/colorOnPrimary"
+            app:iconTint="?attr/colorOnPrimary"
+            android:text="Import" />
 
-        <Button
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnShare"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:drawableLeft="@drawable/ic_share"
-            android:drawablePadding="8dp"
-            android:text="Share"
-            style="?android:attr/borderlessButtonStyle" />
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:layout_marginEnd="8dp"
+            app:icon="@drawable/ic_share"
+            android:textSize="12sp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:textColor="?attr/colorOnPrimary"
+            app:iconTint="?attr/colorOnPrimary"
+            android:text="Share" />
     </LinearLayout>
 
     <LinearLayout
         android:id="@+id/llMagnetic"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:gravity="top"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toTopOf="@id/llAzimuth">
@@ -157,15 +172,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Magnetic declination: 0.0°"
-            android:textSize="14sp"
-            android:textColor="@android:color/holo_blue_dark" />
+            android:textSize="12sp"
+             />
 
-        <CheckBox
+        <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/cbMagnetic"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="apply"
+            android:text="Apply"
             android:checked="false" />
     </LinearLayout>
 
@@ -174,48 +189,36 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="16dp"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:gravity="top"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toTopOf="@id/llArrowContainer">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Azimuth "
-            android:textSize="16sp" />
-
-        <CheckBox
+        <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/cbManualAzimuth"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="manual "
+            android:text="Manual"
+            android:layout_marginEnd="16dp"
             android:checked="false" />
 
-        <EditText
-            android:id="@+id/etAzimuth"
-            android:layout_width="70dp"
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="120dp"
             android:layout_height="wrap_content"
-            android:inputType="numberDecimal"
-            android:imeOptions="actionDone"
-            android:textSize="16sp"
-            android:textAlignment="center" />
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+            android:hint="Azimuth (°)">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="° back "
-            android:textSize="16sp" />
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etAzimuth"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:imeOptions="actionDone"
+                android:textAlignment="center" />
 
-        <TextView
-            android:id="@+id/tvBackAzimuth"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0°"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+        </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 
     <LinearLayout
@@ -248,7 +251,7 @@
                 android:src="@drawable/ic_arrow_up"
                 android:clickable="true"
                 android:focusable="true"
-                app:tint="@android:color/holo_red_dark" />
+                app:tint="?attr/colorPrimary" />
 
             <TextView
                 android:id="@+id/tvSelectReadingText"
@@ -260,10 +263,10 @@
                 android:textSize="20sp"
                 android:textStyle="bold"
                 android:textColor="@android:color/white"
-                android:shadowColor="#000000"
-                android:shadowRadius="8"
-                android:shadowDx="2"
-                android:shadowDy="2" />
+                android:shadowColor="#66000000"
+                android:shadowRadius="4"
+                android:shadowDx="1"
+                android:shadowDy="1" />
         </FrameLayout>
 
         <LinearLayout
@@ -271,7 +274,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
+            android:gravity="top"
             android:layout_marginTop="8dp">
 
             <ImageView
@@ -287,7 +290,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text="Unreliable - please move phone in an 8 shape"
-                android:textSize="14sp" />
+                android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
 

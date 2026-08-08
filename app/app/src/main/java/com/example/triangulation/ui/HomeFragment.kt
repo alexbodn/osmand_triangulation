@@ -43,17 +43,15 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
     private lateinit var ivArrow: ImageView
     private lateinit var etAzimuth: EditText
-    private lateinit var tvBackAzimuth: TextView
     private lateinit var llMagnetic: android.widget.LinearLayout
     private lateinit var llAzimuth: android.widget.LinearLayout
     private lateinit var llArrowContainer: android.widget.LinearLayout
     private lateinit var tvDeclination: TextView
     private lateinit var flSelectArea: android.widget.FrameLayout
     private lateinit var tvSelectReadingText: TextView
-    private lateinit var btnIntersection: View
+    private lateinit var btnIntersection: android.widget.Button
     private lateinit var spnIntersectionMode: android.widget.Spinner
-    private lateinit var tvIntersectionMode: TextView
-    private lateinit var cbMagnetic: CheckBox
+        private lateinit var cbMagnetic: CheckBox
     private lateinit var cbManualAzimuth: CheckBox
 
     private lateinit var ivAccuracyIcon: android.widget.ImageView
@@ -93,7 +91,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
             ivArrow = view.findViewById(R.id.ivArrow)
             etAzimuth = view.findViewById(R.id.etAzimuth)
-            tvBackAzimuth = view.findViewById(R.id.tvBackAzimuth)
             llMagnetic = view.findViewById(R.id.llMagnetic)
             llAzimuth = view.findViewById(R.id.llAzimuth)
             llArrowContainer = view.findViewById(R.id.llArrowContainer)
@@ -114,7 +111,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             spnIntersectionMode = view.findViewById(R.id.spnIntersectionMode)
-            tvIntersectionMode = view.findViewById(R.id.tvIntersectionMode)
 
             var isInitialSpinnerSelection = true
 
@@ -128,9 +124,24 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
             spnIntersectionMode.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    val selectionText = parent?.getItemAtPosition(position).toString()
+                    val firstWord = selectionText.split(" ")[0]
+
+                    if (firstWord == "Help") {
+                        // Revert spinner to previous mode so button doesn't get stuck on "Help"
+                        val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+                        val prevMode = sharedPrefs.getInt("intersectionMode", 0)
+                        spnIntersectionMode.setSelection(prevMode)
+
+                        // Navigate to usage
+                        (activity as? com.example.triangulation.MainActivity)?.navigateToFragment(com.example.triangulation.ui.UsageFragment(), "Usage", R.id.nav_usage)
+                        return
+                    }
+
+                    btnIntersection.text = firstWord.uppercase()
+
                     val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
                     sharedPrefs.edit().putInt("intersectionMode", position).apply()
-                    tvIntersectionMode.text = parent?.getItemAtPosition(position).toString()
 
                     if (!isInitialSpinnerSelection) {
                         val target = calculateTarget()
@@ -162,21 +173,35 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 } else false
             }
 
+            var isEditingAzimuth = false
+            etAzimuth.setOnFocusChangeListener { _, hasFocus ->
+                isEditingAzimuth = hasFocus
+                if (hasFocus) {
+                    view.findViewById<View>(R.id.svPoints).visibility = View.GONE
+                    view.findViewById<View>(R.id.llArrowContainer).visibility = View.VISIBLE
+                } else {
+                    view.findViewById<View>(R.id.svPoints).visibility = View.VISIBLE
+                    view.findViewById<View>(R.id.llArrowContainer).visibility = View.VISIBLE
+                }
+            }
+
             com.example.triangulation.KeyboardUtils.addKeyboardVisibilityListener(view) { isKeyboardShowing ->
                 val hasLocation = currentLat != null && currentLon != null
                 if (isKeyboardShowing) {
                     view.findViewById<View>(R.id.llPointsHeader).visibility = View.GONE
-                    view.findViewById<View>(R.id.svPoints).visibility = View.GONE
                     view.findViewById<View>(R.id.llListActions).visibility = View.GONE
                     view.findViewById<View>(R.id.llMagnetic).visibility = if (hasLocation) View.VISIBLE else View.GONE
+                    view.findViewById<View>(R.id.svPoints).visibility = View.GONE
+                    view.findViewById<View>(R.id.llArrowContainer).visibility = View.VISIBLE
                 } else {
                     view.findViewById<View>(R.id.llPointsHeader).visibility = View.VISIBLE
-                    view.findViewById<View>(R.id.svPoints).visibility = View.VISIBLE
                     view.findViewById<View>(R.id.llListActions).visibility = View.VISIBLE
-
                     view.findViewById<View>(R.id.llMagnetic).visibility = if (hasLocation) View.VISIBLE else View.GONE
-
-                    etAzimuth.clearFocus()
+                    if (isEditingAzimuth) {
+                        etAzimuth.clearFocus()
+                    }
+                    view.findViewById<View>(R.id.svPoints).visibility = View.VISIBLE
+                    view.findViewById<View>(R.id.llArrowContainer).visibility = View.VISIBLE
                 }
             }
 
@@ -215,8 +240,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             try {
                                 val azimuth = azimuthStr.toFloat()
                                 if (azimuth in 0f..360f) {
-                                    val backAzimuth = (azimuth + 180) % 360
-                                    tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
+                                    // Valid azimuth
                                 }
                             } catch (e: NumberFormatException) {
                             }
@@ -245,8 +269,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             if (currentVal < 0f) currentVal += 360f
 
                             etAzimuth.setText(String.format("%.1f", currentVal))
-                            val backAzimuth = (currentVal + 180) % 360
-                            tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
                             etAzimuth.setSelection(etAzimuth.text.length)
                         }
                     } catch (e: Exception) {}
@@ -344,7 +366,19 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                                             val targetLat = cog.first
                                             val targetLon = cog.second
 
-                                            val uri = android.net.Uri.parse("geo:${targetLat},${targetLon}?z=15")
+                                            // Calculate maximum radius in kilometers from target to any reading
+                                            var maxDistanceKm = 0.5 // minimum zoom scale bound
+                                            for (reading in selectedLocations) {
+                                                val dKm = calculateDistance(targetLat, targetLon, reading.lat, reading.lon)
+                                                if (dKm > maxDistanceKm) maxDistanceKm = dKm
+                                            }
+
+                                            // Zoom level heuristic: +1 zoom zooms in by 2x
+                                            val zoomDouble = 17.0 - (Math.log(maxDistanceKm / 0.5) / Math.log(2.0))
+                                            val zoom = Math.max(2.0, Math.min(20.0, zoomDouble)).toInt()
+                                            showVerboseToast("Zoom level calculated: $zoom")
+
+                                            val uri = android.net.Uri.parse("geo:${targetLat},${targetLon}?z=${zoom}")
                                             val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
                                             coldIntent.setPackage("net.osmand.plus")
                                             coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
@@ -359,7 +393,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                                             Thread {
                                                 Thread.sleep(300)
-                                                if (!osmandHelper.setMapLocation(targetLat, targetLon, 15)) {
+                                                if (!osmandHelper.setMapLocation(targetLat, targetLon, zoom)) {
                                                     // Silent fallback, the intent should have worked
                                                 }
                                             }.start()
@@ -387,7 +421,19 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     val finalLat = targetLat
                     val finalLon = targetLon
 
-                    val uri = android.net.Uri.parse("geo:${finalLat},${finalLon}?z=15")
+                    // Calculate maximum radius in kilometers from target to any reading
+                    var maxDistanceKm = 0.5 // minimum zoom scale bound
+                    for (reading in selectedLocations) {
+                        val dKm = calculateDistance(finalLat, finalLon, reading.lat, reading.lon)
+                        if (dKm > maxDistanceKm) maxDistanceKm = dKm
+                    }
+
+                    // Zoom level heuristic: +1 zoom zooms in by 2x
+                    val zoomDouble = 17.0 - (Math.log(maxDistanceKm / 0.5) / Math.log(2.0))
+                    val zoom = Math.max(2.0, Math.min(20.0, zoomDouble)).toInt()
+                    showVerboseToast("Zoom level calculated: $zoom")
+
+                    val uri = android.net.Uri.parse("geo:${finalLat},${finalLon}?z=${zoom}")
                     val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
                     coldIntent.setPackage("net.osmand.plus")
                     coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
@@ -402,7 +448,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                     Thread {
                         Thread.sleep(300)
-                        if (!osmandHelper.setMapLocation(finalLat, finalLon, 15)) {
+                        if (!osmandHelper.setMapLocation(finalLat, finalLon, zoom)) {
                             // Silent fallback, intent should handle it
                         }
                     }.start()
@@ -622,7 +668,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
     private fun loadState() {
         val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
 
-        val mode = sharedPrefs.getInt("intersectionMode", 1) // Default to Reverse
+        val mode = sharedPrefs.getInt("intersectionMode", 0) // Default to Resection
         spnIntersectionMode.setSelection(mode)
 
         val isMagneticChecked = sharedPrefs.getBoolean("isMagneticChecked", false)
@@ -669,8 +715,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
         if (!cbManualAzimuth.isChecked || forceUpdateEditText) {
             etAzimuth.setText(String.format("%.1f", azimuthToDisplay))
-            val backAzimuth = (azimuthToDisplay + 180) % 360
-            tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
         }
     }
 
@@ -721,10 +765,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
                             val bbox = doubleArrayOf(parts[0].toDouble(), parts[1].toDouble(), parts[2].toDouble(), parts[3].toDouble())
                             // Switch to locations tab
-                            (activity as? com.example.triangulation.MainActivity)?.let { mainActivity ->
-                                val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
-                                viewPager?.currentItem = 1
-                            }
+                            (activity as? com.example.triangulation.MainActivity)?.navigateToFragment(com.example.triangulation.ui.LocationsFragment(), "Library", R.id.nav_locations)
 
                             val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", android.content.Context.MODE_PRIVATE)
                             sharedPrefs.edit().putString("bbox_filter", bbox.joinToString(",")).apply()
@@ -755,10 +796,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                             val parts = bboxStr.split(",")
                             if (parts.size >= 4) {
                                 val bbox = doubleArrayOf(parts[0].toDouble(), parts[1].toDouble(), parts[2].toDouble(), parts[3].toDouble())
-                                (activity as? com.example.triangulation.MainActivity)?.let { mainActivity ->
-                                    val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
-                                    viewPager?.currentItem = 1
-                                }
+                                (activity as? com.example.triangulation.MainActivity)?.navigateToFragment(com.example.triangulation.ui.LocationsFragment(), "Library", R.id.nav_locations)
                                 val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", android.content.Context.MODE_PRIVATE)
                                 sharedPrefs.edit().putString("bbox_filter", bbox.joinToString(",")).apply()
                                 val bboxIntent = Intent("com.example.triangulation.BBOX_FILTER")
@@ -845,8 +883,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     if (displayAzimuth >= 360f) displayAzimuth -= 360f
                 }
                 etAzimuth.setText(String.format("%.1f", displayAzimuth))
-                val backAzimuth = (displayAzimuth + 180) % 360
-                tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
             } else {
                 // When sharing a NEW location with the app, ensure we start taking live sensor data immediately
                 val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
@@ -868,11 +904,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
             updateBackAzimuthDisplay(true)
 
-            // Switch to Home tab
-            (activity as? com.example.triangulation.MainActivity)?.let { mainActivity ->
-                val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
-                viewPager?.currentItem = 0
-            }
+            // Ensure we are on Home tab
+            (activity as? com.example.triangulation.MainActivity)?.navigateToFragment(com.example.triangulation.ui.HomeFragment(), "Home", R.id.nav_home)
 
             intent?.removeExtra("lat")
             intent?.removeExtra("lon")
@@ -953,10 +986,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                         showVerboseToast("Imported $importedCount new locations.")
 
                         // Switch to locations tab
-                        (activity as? com.example.triangulation.MainActivity)?.let { mainActivity ->
-                            val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
-                            viewPager?.currentItem = 1
-                        }
+                        (activity as? com.example.triangulation.MainActivity)?.navigateToFragment(com.example.triangulation.ui.LocationsFragment(), "Library", R.id.nav_locations)
                         val refreshIntent = Intent("com.example.triangulation.REFRESH_LIBRARY")
                         requireContext().sendBroadcast(refreshIntent)
                     }
@@ -1011,8 +1041,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 }
 
                 etAzimuth.setText(String.format("%.1f", displayAzimuth))
-                val backAzimuth = (displayAzimuth + 180) % 360
-                tvBackAzimuth.text = "${String.format("%.1f", backAzimuth)}°"
 
                 refreshUIForCurrentLocation()
 
@@ -1287,7 +1315,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         val lat1 = Math.toRadians(r1.lat)
         val lon1 = Math.toRadians(r1.lon)
         val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
-        val isReverseMode = sharedPrefs.getInt("intersectionMode", 1) == 1
+        val isReverseMode = sharedPrefs.getInt("intersectionMode", 0) == 0 // Index 0 is Resection (Reverse)
         val brng1 = if (isReverseMode) Math.toRadians(r1.backAzimuth.toDouble()) else Math.toRadians(r1.azimuth.toDouble())
 
         val lat2 = Math.toRadians(r2.lat)
@@ -1499,7 +1527,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             // Thread safe: pass mode via parameter or calculate before thread
-            val isReverseMode = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE).getInt("intersectionMode", 1) == 1
+            val isReverseMode = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE).getInt("intersectionMode", 0) == 0
             val bearing = if (isReverseMode) reading.backAzimuth.toDouble() else reading.azimuth.toDouble()
             val point2 = calculateDestination(reading.lat, reading.lon, bearing, dist)
 

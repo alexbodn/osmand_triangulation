@@ -65,11 +65,8 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                 intent.putExtra("desc", loc.desc)
                 startActivity(intent)
 
-                // If using ViewPager, we could also just change the current item.
-                (activity as? MainActivity)?.let { mainActivity ->
-                    val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
-                    viewPager?.currentItem = 0
-                }
+                // If using Navigation Drawer, we can navigate directly
+                (activity as? MainActivity)?.navigateToFragment(com.example.triangulation.ui.HomeFragment(), "Home", R.id.nav_home)
             },
             onShowClick = { loc ->
                 val uri = android.net.Uri.parse("geo:${loc.lat},${loc.lon}?z=15")

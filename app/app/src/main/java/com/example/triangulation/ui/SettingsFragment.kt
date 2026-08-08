@@ -7,6 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.RadioGroup
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
 import com.example.triangulation.R
 
@@ -15,6 +17,7 @@ class SettingsFragment : Fragment() {
     private lateinit var etDistance: EditText
     private lateinit var etHorizon: EditText
     private lateinit var cbVerbose: CheckBox
+    private lateinit var rgTheme: RadioGroup
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -29,6 +32,7 @@ class SettingsFragment : Fragment() {
         etDistance = view.findViewById(R.id.etDistance)
         etHorizon = view.findViewById(R.id.etHorizon)
         cbVerbose = view.findViewById(R.id.cbVerbose)
+        rgTheme = view.findViewById(R.id.rgTheme)
 
         val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
         val savedDist = sharedPrefs.getFloat("defaultDistance", 3.0f)
@@ -38,6 +42,29 @@ class SettingsFragment : Fragment() {
         etHorizon.setText(savedHorizon.toString())
 
         cbVerbose.isChecked = sharedPrefs.getBoolean("verbose_mode", false)
+
+        var savedTheme = sharedPrefs.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        // Clean up legacy auto time setting if it exists
+        if (savedTheme == 0) { // MODE_NIGHT_AUTO_TIME is 0
+            savedTheme = AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            sharedPrefs.edit().putInt("theme_mode", savedTheme).apply()
+        }
+
+        when (savedTheme) {
+            AppCompatDelegate.MODE_NIGHT_NO -> rgTheme.check(R.id.rbThemeLight)
+            AppCompatDelegate.MODE_NIGHT_YES -> rgTheme.check(R.id.rbThemeDark)
+            else -> rgTheme.check(R.id.rbThemeSystem)
+        }
+
+        rgTheme.setOnCheckedChangeListener { _, checkedId ->
+            val mode = when (checkedId) {
+                R.id.rbThemeLight -> AppCompatDelegate.MODE_NIGHT_NO
+                R.id.rbThemeDark -> AppCompatDelegate.MODE_NIGHT_YES
+                else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            }
+            sharedPrefs.edit().putInt("theme_mode", mode).apply()
+            AppCompatDelegate.setDefaultNightMode(mode)
+        }
 
         cbVerbose.setOnCheckedChangeListener { _, isChecked ->
             sharedPrefs.edit().putBoolean("verbose_mode", isChecked).apply()

@@ -904,9 +904,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             updateBackAzimuthDisplay(true)
-
-            // Ensure we are on Home tab
-            (activity as? com.example.triangulation.MainActivity)?.navigateToFragment(com.example.triangulation.ui.HomeFragment(), "Home", R.id.nav_home)
+            refreshUIForCurrentLocation()
 
             intent?.removeExtra("lat")
             intent?.removeExtra("lon")

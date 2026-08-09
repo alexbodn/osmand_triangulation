@@ -92,6 +92,21 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         super.onNewIntent(intent)
         setIntent(intent) // Update the activity's intent
 
+        val hasLocationData = intent != null && (intent.hasExtra("lat") ||
+            (intent.data?.scheme == "geo" && intent.data?.toString()?.contains("bbox=") == false) ||
+            (intent.action == Intent.ACTION_SEND && intent.type == "text/plain" &&
+             intent.getStringExtra(Intent.EXTRA_TEXT)?.let {
+                 it.contains("lat=") || it.contains("geo:") || it.matches(Regex(".*[0-9]{1,2}\\.[0-9]+[^0-9.-]+[0-9]{1,3}\\.[0-9]+.*"))
+             } == true))
+
+        if (hasLocationData) {
+            val isHomeFragmentVisible = supportFragmentManager.fragments.any { it is HomeFragment && it.isVisible }
+            if (!isHomeFragmentVisible) {
+                navigateToFragment(HomeFragment(), "Home", R.id.nav_home)
+                supportFragmentManager.executePendingTransactions()
+            }
+        }
+
         // Forward to HomeFragment
         val fragments = supportFragmentManager.fragments
         for (fragment in fragments) {

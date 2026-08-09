@@ -20,6 +20,7 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import com.google.android.material.snackbar.Snackbar
 import android.widget.CheckBox
 import androidx.appcompat.app.AppCompatActivity
 import org.json.JSONArray
@@ -1141,13 +1142,33 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             btnDelete.setOnClickListener {
+                val backupList = selectedLocations.toList()
                 selectedLocations.removeAt(i)
                 saveState()
                 updatePointsList()
-                Thread {
-                    drawTriangulationPointsOnMap()
-                }.start()
                 showVerboseToast("Point removed from active list")
+
+                view?.let { root ->
+                    Snackbar.make(root, "Point deleted", Snackbar.LENGTH_LONG)
+                        .setAction("Undo") {
+                            selectedLocations.clear()
+                            selectedLocations.addAll(backupList)
+                            saveState()
+                            updatePointsList()
+                        }
+                        .addCallback(object : Snackbar.Callback() {
+                            override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                                if (event != DISMISS_EVENT_ACTION) {
+                                    if (isAdded) {
+                                        Thread {
+                                            drawTriangulationPointsOnMap()
+                                        }.start()
+                                    }
+                                }
+                            }
+                        })
+                        .show()
+                }
             }
 
             llPointsContainer.addView(itemView)

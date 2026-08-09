@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import com.google.android.material.snackbar.Snackbar
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -90,11 +91,16 @@ class LocationsFragment : Fragment(), OsmAndAidlHelper.OsmAndAidlListener {
                 }.start()
             },
             onDeleteClick = { loc ->
+                val backupList = libraryManager.getLocations().toList()
                 libraryManager.removeLocation(loc.lat, loc.lon, loc.desc)
                 loadData()
-                // Update Home tab active list if needed? It pulls automatically on next resume/refresh if we use shared prefs or DB, but here they are disjoint.
-                // The requirements say: "Deleting an active location from the Home tab should remove it from the active list and map, but NOT delete it from the library."
-                // "deleting a location from the lib should not remove it from active. just set the save button in active for the location."
+
+                Snackbar.make(requireView(), "Location deleted", Snackbar.LENGTH_LONG)
+                    .setAction("Undo") {
+                        libraryManager.saveLocations(backupList)
+                        loadData()
+                    }
+                    .show()
             },
             onEditClick = { loc ->
                 val builder = android.app.AlertDialog.Builder(requireContext())

@@ -170,6 +170,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     v.clearFocus()
                     val imm = requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                     imm.hideSoftInputFromWindow(v.windowToken, 0)
+                    saveCurrentReading()
                     true
                 } else false
             }
@@ -300,111 +301,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                     val t = 1f / (2f * area) * (p1x * p2y - p1y * p2x + (p1y - p2y) * px + (p2x - p1x) * py)
 
                     if (s > 0 && t > 0 && 1 - s - t > 0) {
-                        if (currentLat != null && currentLon != null) {
-                            var azimuthToUse = 0f
-                            try {
-                                val strVal = etAzimuth.text.toString()
-                                if (strVal.isNotEmpty()) {
-                                    azimuthToUse = strVal.toFloat()
-
-                                    if (!cbMagnetic.isChecked) {
-                                        azimuthToUse += calculateCurrentDeclination()
-                                        if (azimuthToUse >= 360f) azimuthToUse -= 360f
-                                        if (azimuthToUse < 0f) azimuthToUse += 360f
-                                    }
-                                }
-                            } catch (e: Exception) {
-                            }
-
-                            val backAzimuth = (azimuthToUse + 180) % 360
-                            val newReading = Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth, rawReceivedParameter?.let { extractDescription(it) })
-
-                            val existingIndex = selectedLocations.indexOfFirst { it.lat == currentLat && it.lon == currentLon }
-                            if (existingIndex != -1) {
-                                selectedLocations[existingIndex] = newReading
-                            } else {
-                                selectedLocations.add(newReading)
-                            }
-
-                            // Consume the location parameters so they are used only once
-                            currentLat = null
-                            currentLon = null
-                            rawReceivedParameter = null
-
-                            saveState()
-                            updatePointsList()
-                            showVerboseToast("Reading saved. Drawing silently on Map...")
-
-                            // Restore the manual default if it was temporarily forced true during edit
-                            val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
-                            val defaultManual = sharedPrefs.getBoolean("isManualAzimuthChecked", false)
-                            if (cbManualAzimuth.isChecked != defaultManual) {
-                                cbManualAzimuth.tag = "suppress_save"
-                                cbManualAzimuth.isChecked = defaultManual
-                                cbManualAzimuth.tag = null
-                            }
-
-                            // Update UI explicitly here since we just nullified the variables
-                            flSelectArea.isEnabled = false
-                            flSelectArea.alpha = 0.5f
-                            tvSelectReadingText.visibility = View.INVISIBLE
-                            cbManualAzimuth.isEnabled = false
-                            etAzimuth.isEnabled = false
-                            requireActivity().title = "Triangulation - No Location"
-
-                            Thread {
-                                drawTriangulationPointsOnMap()
-
-                                activity?.runOnUiThread {
-                                    val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
-                                        ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
-                                    // Map will open automatically when cog or intersection is launched
-                                    // Removed finish() so that returning to the app from background won't replay the intent via onCreate
-
-                                    if (selectedLocations.size >= 2) {
-                                        val cog = calculateCenterOfGravity()
-                                        if (cog != null) {
-                                            val targetLat = cog.first
-                                            val targetLon = cog.second
-
-                                            // Calculate maximum radius in kilometers from target to any reading
-                                            var maxDistanceKm = 0.5 // minimum zoom scale bound
-                                            for (reading in selectedLocations) {
-                                                val dKm = calculateDistance(targetLat, targetLon, reading.lat, reading.lon)
-                                                if (dKm > maxDistanceKm) maxDistanceKm = dKm
-                                            }
-
-                                            // Zoom level heuristic: +1 zoom zooms in by 2x
-                                            val zoomDouble = 17.0 - (Math.log(maxDistanceKm / 0.5) / Math.log(2.0))
-                                            val zoom = Math.max(2.0, Math.min(20.0, zoomDouble)).toInt()
-                                            showVerboseToast("Zoom level calculated: $zoom")
-
-                                            val uri = android.net.Uri.parse("geo:${targetLat},${targetLon}?z=${zoom}")
-                                            val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
-                                            coldIntent.setPackage("net.osmand.plus")
-                                            coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-                                            try {
-                                                startActivity(coldIntent)
-                                                showVerboseToast("OsmAnd+ hot/cold intent fired")
-                                            } catch (e: Exception) {
-                                                coldIntent.setPackage("net.osmand")
-                                                startActivity(coldIntent)
-                                                showVerboseToast("OsmAnd hot/cold intent fired")
-                                            }
-
-                                            Thread {
-                                                Thread.sleep(300)
-                                                if (!osmandHelper.setMapLocation(targetLat, targetLon, zoom)) {
-                                                    // Silent fallback, the intent should have worked
-                                                }
-                                            }.start()
-                                        }
-                                    }
-                                }
-                            }.start()
-                        } else {
-                            Toast.makeText(requireContext(), "No location selected from OsmAnd. Launch app from OsmAnd context menu or share.", Toast.LENGTH_SHORT).show()
-                        }
+                        saveCurrentReading()
                         return@setOnTouchListener true
                     }
                 }
@@ -462,6 +359,114 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         } catch (e: Exception) {
             Log.e("Triangulation", "Error in onCreate", e)
             Toast.makeText(requireContext(), "Startup error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun saveCurrentReading() {
+        if (currentLat != null && currentLon != null) {
+            var azimuthToUse = 0f
+            try {
+                val strVal = etAzimuth.text.toString()
+                if (strVal.isNotEmpty()) {
+                    azimuthToUse = strVal.toFloat()
+
+                    if (!cbMagnetic.isChecked) {
+                        azimuthToUse += calculateCurrentDeclination()
+                        if (azimuthToUse >= 360f) azimuthToUse -= 360f
+                        if (azimuthToUse < 0f) azimuthToUse += 360f
+                    }
+                }
+            } catch (e: Exception) {
+            }
+
+            val backAzimuth = (azimuthToUse + 180) % 360
+            val newReading = Reading(currentLat!!, currentLon!!, azimuthToUse, backAzimuth, rawReceivedParameter?.let { extractDescription(it) })
+
+            val existingIndex = selectedLocations.indexOfFirst { it.lat == currentLat && it.lon == currentLon }
+            if (existingIndex != -1) {
+                selectedLocations[existingIndex] = newReading
+            } else {
+                selectedLocations.add(newReading)
+            }
+
+            // Consume the location parameters so they are used only once
+            currentLat = null
+            currentLon = null
+            rawReceivedParameter = null
+
+            saveState()
+            updatePointsList()
+            showVerboseToast("Reading saved. Drawing silently on Map...")
+
+            // Restore the manual default if it was temporarily forced true during edit
+            val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+            val defaultManual = sharedPrefs.getBoolean("isManualAzimuthChecked", false)
+            if (cbManualAzimuth.isChecked != defaultManual) {
+                cbManualAzimuth.tag = "suppress_save"
+                cbManualAzimuth.isChecked = defaultManual
+                cbManualAzimuth.tag = null
+            }
+
+            // Update UI explicitly here since we just nullified the variables
+            flSelectArea.isEnabled = false
+            flSelectArea.alpha = 0.5f
+            tvSelectReadingText.visibility = View.INVISIBLE
+            cbManualAzimuth.isEnabled = false
+            etAzimuth.isEnabled = false
+            requireActivity().title = "Triangulation - No Location"
+
+            Thread {
+                drawTriangulationPointsOnMap()
+
+                activity?.runOnUiThread {
+                    val launchIntent = requireActivity().packageManager.getLaunchIntentForPackage("net.osmand.plus")
+                        ?: requireActivity().packageManager.getLaunchIntentForPackage("net.osmand")
+                    // Map will open automatically when cog or intersection is launched
+                    // Removed finish() so that returning to the app from background won't replay the intent via onCreate
+
+                    if (selectedLocations.size >= 2) {
+                        val cog = calculateCenterOfGravity()
+                        if (cog != null) {
+                            val targetLat = cog.first
+                            val targetLon = cog.second
+
+                            // Calculate maximum radius in kilometers from target to any reading
+                            var maxDistanceKm = 0.5 // minimum zoom scale bound
+                            for (reading in selectedLocations) {
+                                val dKm = calculateDistance(targetLat, targetLon, reading.lat, reading.lon)
+                                if (dKm > maxDistanceKm) maxDistanceKm = dKm
+                            }
+
+                            // Zoom level heuristic: +1 zoom zooms in by 2x
+                            val zoomDouble = 17.0 - (Math.log(maxDistanceKm / 0.5) / Math.log(2.0))
+                            val zoom = Math.max(2.0, Math.min(20.0, zoomDouble)).toInt()
+                            showVerboseToast("Zoom level calculated: $zoom")
+
+                            val uri = android.net.Uri.parse("geo:${targetLat},${targetLon}?z=${zoom}")
+                            val coldIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+                            coldIntent.setPackage("net.osmand.plus")
+                            coldIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                            try {
+                                startActivity(coldIntent)
+                                showVerboseToast("OsmAnd+ hot/cold intent fired")
+                            } catch (e: Exception) {
+                                coldIntent.setPackage("net.osmand")
+                                startActivity(coldIntent)
+                                showVerboseToast("OsmAnd hot/cold intent fired")
+                            }
+
+                            Thread {
+                                Thread.sleep(300)
+                                if (!osmandHelper.setMapLocation(targetLat, targetLon, zoom)) {
+                                    // Silent fallback, the intent should have worked
+                                }
+                            }.start()
+                        }
+                    }
+                }
+            }.start()
+        } else {
+            Toast.makeText(requireContext(), "No location selected from OsmAnd. Launch app from OsmAnd context menu or share.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1385,6 +1390,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         val view = layoutInflater.inflate(R.layout.dialog_share, null)
         val cbObservations = view.findViewById<android.widget.CheckBox>(R.id.cbShareObservations)
         val cbIntersection = view.findViewById<android.widget.CheckBox>(R.id.cbShareIntersection)
+        val cbResection = view.findViewById<android.widget.CheckBox>(R.id.cbShareResection)
 
         // Only enable intersection option if we have at least 2 points
         cbIntersection.isEnabled = selectedLocations.size >= 2
@@ -1392,15 +1398,20 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             cbIntersection.isChecked = false
         }
 
+        cbResection.isEnabled = selectedLocations.size >= 2
+        if (!cbResection.isEnabled) {
+            cbResection.isChecked = false
+        }
+
         builder.setView(view)
         builder.setPositiveButton("Share") { _, _ ->
-            shareData(cbObservations.isChecked, cbIntersection.isChecked)
+            shareData(cbObservations.isChecked, cbIntersection.isChecked, cbResection.isChecked)
         }
         builder.setNegativeButton("Cancel", null)
         builder.show()
     }
 
-    private fun shareData(shareObservations: Boolean, shareIntersection: Boolean) {
+    private fun shareData(shareObservations: Boolean, shareIntersection: Boolean, shareResection: Boolean) {
         val features = org.json.JSONArray()
 
         if (shareObservations) {
@@ -1425,7 +1436,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
         }
 
-        if (shareIntersection && selectedLocations.size >= 2) {
+        if ((shareIntersection || shareResection) && selectedLocations.size >= 2) {
             var targetLat: Double? = null
             var targetLon: Double? = null
 
@@ -1444,22 +1455,43 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             }
 
             if (targetLat != null && targetLon != null) {
-                val feature = org.json.JSONObject()
-                feature.put("type", "Feature")
+                if (shareIntersection) {
+                    val feature = org.json.JSONObject()
+                    feature.put("type", "Feature")
 
-                val geometry = org.json.JSONObject()
-                geometry.put("type", "Point")
-                val coords = org.json.JSONArray()
-                coords.put(targetLon)
-                coords.put(targetLat)
-                geometry.put("coordinates", coords)
-                feature.put("geometry", geometry)
+                    val geometry = org.json.JSONObject()
+                    geometry.put("type", "Point")
+                    val coords = org.json.JSONArray()
+                    coords.put(targetLon)
+                    coords.put(targetLat)
+                    geometry.put("coordinates", coords)
+                    feature.put("geometry", geometry)
 
-                val properties = org.json.JSONObject()
-                properties.put("desc", "Intersection / Center of Gravity")
-                feature.put("properties", properties)
+                    val properties = org.json.JSONObject()
+                    properties.put("desc", "Intersection / Center of Gravity")
+                    feature.put("properties", properties)
 
-                features.put(feature)
+                    features.put(feature)
+                }
+
+                if (shareResection) {
+                    val feature = org.json.JSONObject()
+                    feature.put("type", "Feature")
+
+                    val geometry = org.json.JSONObject()
+                    geometry.put("type", "Point")
+                    val coords = org.json.JSONArray()
+                    coords.put(targetLon)
+                    coords.put(targetLat)
+                    geometry.put("coordinates", coords)
+                    feature.put("geometry", geometry)
+
+                    val properties = org.json.JSONObject()
+                    properties.put("desc", "Resection")
+                    feature.put("properties", properties)
+
+                    features.put(feature)
+                }
             }
         }
 

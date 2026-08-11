@@ -9,7 +9,7 @@
         android:id="@+id/cbShareObservations"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Share Observations"
+        android:text="Observations"
         android:checked="true" />
 
     <CheckBox
@@ -17,7 +17,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Share Intersection"
+        android:text="Intersection"
+        android:checked="true" />
+
+    <CheckBox
+        android:id="@+id/cbShareResection"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Resection"
         android:checked="true" />
 
 </LinearLayout>

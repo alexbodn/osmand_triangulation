@@ -1290,7 +1290,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         builder.show()
     }
 
-    private fun calculateCenterOfGravity(): Pair<Double, Double>? {
+    private fun calculateCenterOfGravity(forceReverseMode: Boolean? = null): Pair<Double, Double>? {
         if (selectedLocations.size < 2) return null
         var totalLat = 0.0
         var totalLon = 0.0
@@ -1299,7 +1299,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         for (i in 0 until selectedLocations.size - 1) {
             val r1 = selectedLocations[i]
             val r2 = selectedLocations[i + 1]
-            val intersection = calculateIntersection(r1, r2)
+            val intersection = calculateIntersection(r1, r2, forceReverseMode)
             if (intersection != null) {
                 totalLat += intersection.first
                 totalLon += intersection.second
@@ -1335,11 +1335,11 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         return Pair(Math.toDegrees(lat2), Math.toDegrees(lon2))
     }
 
-    private fun calculateIntersection(r1: Reading, r2: Reading): Pair<Double, Double>? {
+    private fun calculateIntersection(r1: Reading, r2: Reading, forceReverseMode: Boolean? = null): Pair<Double, Double>? {
         val lat1 = Math.toRadians(r1.lat)
         val lon1 = Math.toRadians(r1.lon)
         val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
-        val isReverseMode = sharedPrefs.getInt("intersectionMode", 0) == 0 // Index 0 is Resection (Reverse)
+        val isReverseMode = forceReverseMode ?: (sharedPrefs.getInt("intersectionMode", 0) == 0) // Index 0 is Resection (Reverse)
         val brng1 = if (isReverseMode) Math.toRadians(r1.backAzimuth.toDouble()) else Math.toRadians(r1.azimuth.toDouble())
 
         val lat2 = Math.toRadians(r2.lat)
@@ -1384,114 +1384,146 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             return
         }
 
-        val builder = android.app.AlertDialog.Builder(requireContext())
-        builder.setTitle("Share Data")
+        val btnShare = view?.findViewById<View>(R.id.btnShare)
+        if (btnShare != null) {
+            val popup = android.widget.PopupMenu(requireContext(), btnShare)
+            popup.menu.add(0, 1, 0, "Intersection (geo:)")
+            popup.menu.add(0, 2, 0, "Resection (geo:)")
+            popup.menu.add(0, 3, 0, "Observations (GeoJSON)")
 
-        val view = layoutInflater.inflate(R.layout.dialog_share, null)
-        val cbObservations = view.findViewById<android.widget.CheckBox>(R.id.cbShareObservations)
-        val cbIntersection = view.findViewById<android.widget.CheckBox>(R.id.cbShareIntersection)
-        val cbResection = view.findViewById<android.widget.CheckBox>(R.id.cbShareResection)
+            if (selectedLocations.size < 2) {
+                popup.menu.findItem(1).isEnabled = false
+                popup.menu.findItem(2).isEnabled = false
+            }
 
-        // Only enable intersection option if we have at least 2 points
-        cbIntersection.isEnabled = selectedLocations.size >= 2
-        if (!cbIntersection.isEnabled) {
-            cbIntersection.isChecked = false
+            popup.setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    1 -> shareData(false, true, false)
+                    2 -> shareData(false, false, true)
+                    3 -> shareData(true, true, true)
+                }
+                true
+            }
+            popup.show()
+        } else {
+            val options = mutableListOf<String>()
+            val hasTwoPoints = selectedLocations.size >= 2
+
+            if (hasTwoPoints) {
+                options.add("Intersection (geo:)")
+                options.add("Resection (geo:)")
+            }
+            options.add("Observations (GeoJSON)")
+
+            android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Share Data")
+                .setItems(options.toTypedArray()) { _, which ->
+                    val selectedText = options[which]
+                    when {
+                        selectedText.startsWith("Intersection") -> shareData(false, true, false)
+                        selectedText.startsWith("Resection") -> shareData(false, false, true)
+                        selectedText.startsWith("Observations") -> shareData(true, true, true)
+                    }
+                }
+                .show()
         }
-
-        cbResection.isEnabled = selectedLocations.size >= 2
-        if (!cbResection.isEnabled) {
-            cbResection.isChecked = false
-        }
-
-        builder.setView(view)
-        builder.setPositiveButton("Share") { _, _ ->
-            shareData(cbObservations.isChecked, cbIntersection.isChecked, cbResection.isChecked)
-        }
-        builder.setNegativeButton("Cancel", null)
-        builder.show()
     }
 
     private fun shareData(shareObservations: Boolean, shareIntersection: Boolean, shareResection: Boolean) {
+        if (!shareObservations && shareIntersection && !shareResection) {
+            // Share Intersection ONLY (geo format)
+            val cog = calculateCenterOfGravity(forceReverseMode = false)
+            val target = cog ?: calculateIntersection(selectedLocations[selectedLocations.size - 2], selectedLocations[selectedLocations.size - 1], forceReverseMode = false)
+            if (target != null) {
+                val intent = Intent(Intent.ACTION_SEND)
+                intent.type = "text/plain"
+                intent.putExtra(Intent.EXTRA_TEXT, "geo:${target.first},${target.second}")
+                startActivity(Intent.createChooser(intent, "Share Intersection via"))
+            }
+            return
+        }
+
+        if (!shareObservations && !shareIntersection && shareResection) {
+            // Share Resection ONLY (geo format)
+            val cog = calculateCenterOfGravity(forceReverseMode = true)
+            val target = cog ?: calculateIntersection(selectedLocations[selectedLocations.size - 2], selectedLocations[selectedLocations.size - 1], forceReverseMode = true)
+            if (target != null) {
+                val intent = Intent(Intent.ACTION_SEND)
+                intent.type = "text/plain"
+                intent.putExtra(Intent.EXTRA_TEXT, "geo:${target.first},${target.second}")
+                startActivity(Intent.createChooser(intent, "Share Resection via"))
+            }
+            return
+        }
+
+        // Share Observations (GeoJSON format), optionally including both intersections
         val features = org.json.JSONArray()
 
-        if (shareObservations) {
-            for (reading in selectedLocations) {
+        for (reading in selectedLocations) {
+            val feature = org.json.JSONObject()
+            feature.put("type", "Feature")
+
+            val geometry = org.json.JSONObject()
+            geometry.put("type", "Point")
+            val coords = org.json.JSONArray()
+            coords.put(reading.lon)
+            coords.put(reading.lat)
+            geometry.put("coordinates", coords)
+            feature.put("geometry", geometry)
+
+            val properties = org.json.JSONObject()
+            properties.put("azimuth", reading.azimuth)
+            if (reading.tempDesc != null) properties.put("desc", reading.tempDesc)
+            feature.put("properties", properties)
+
+            features.put(feature)
+        }
+
+        if (shareIntersection && selectedLocations.size >= 2) {
+            val cog = calculateCenterOfGravity(forceReverseMode = false)
+            val target = cog ?: calculateIntersection(selectedLocations[selectedLocations.size - 2], selectedLocations[selectedLocations.size - 1], forceReverseMode = false)
+
+            if (target != null) {
                 val feature = org.json.JSONObject()
                 feature.put("type", "Feature")
 
                 val geometry = org.json.JSONObject()
                 geometry.put("type", "Point")
                 val coords = org.json.JSONArray()
-                coords.put(reading.lon)
-                coords.put(reading.lat)
+                coords.put(target.second)
+                coords.put(target.first)
                 geometry.put("coordinates", coords)
                 feature.put("geometry", geometry)
 
                 val properties = org.json.JSONObject()
-                properties.put("azimuth", reading.azimuth)
-                if (reading.tempDesc != null) properties.put("desc", reading.tempDesc)
+                properties.put("desc", "Intersection / Center of Gravity")
                 feature.put("properties", properties)
 
                 features.put(feature)
             }
         }
 
-        if ((shareIntersection || shareResection) && selectedLocations.size >= 2) {
-            var targetLat: Double? = null
-            var targetLon: Double? = null
+        if (shareResection && selectedLocations.size >= 2) {
+            val cog = calculateCenterOfGravity(forceReverseMode = true)
+            val target = cog ?: calculateIntersection(selectedLocations[selectedLocations.size - 2], selectedLocations[selectedLocations.size - 1], forceReverseMode = true)
 
-            val cog = calculateCenterOfGravity()
-            if (cog != null) {
-                targetLat = cog.first
-                targetLon = cog.second
-            } else {
-                val r1 = selectedLocations[selectedLocations.size - 2]
-                val r2 = selectedLocations[selectedLocations.size - 1]
-                val intersection = calculateIntersection(r1, r2)
-                if (intersection != null) {
-                    targetLat = intersection.first
-                    targetLon = intersection.second
-                }
-            }
+            if (target != null) {
+                val feature = org.json.JSONObject()
+                feature.put("type", "Feature")
 
-            if (targetLat != null && targetLon != null) {
-                if (shareIntersection) {
-                    val feature = org.json.JSONObject()
-                    feature.put("type", "Feature")
+                val geometry = org.json.JSONObject()
+                geometry.put("type", "Point")
+                val coords = org.json.JSONArray()
+                coords.put(target.second)
+                coords.put(target.first)
+                geometry.put("coordinates", coords)
+                feature.put("geometry", geometry)
 
-                    val geometry = org.json.JSONObject()
-                    geometry.put("type", "Point")
-                    val coords = org.json.JSONArray()
-                    coords.put(targetLon)
-                    coords.put(targetLat)
-                    geometry.put("coordinates", coords)
-                    feature.put("geometry", geometry)
+                val properties = org.json.JSONObject()
+                properties.put("desc", "Resection")
+                feature.put("properties", properties)
 
-                    val properties = org.json.JSONObject()
-                    properties.put("desc", "Intersection / Center of Gravity")
-                    feature.put("properties", properties)
-
-                    features.put(feature)
-                }
-
-                if (shareResection) {
-                    val feature = org.json.JSONObject()
-                    feature.put("type", "Feature")
-
-                    val geometry = org.json.JSONObject()
-                    geometry.put("type", "Point")
-                    val coords = org.json.JSONArray()
-                    coords.put(targetLon)
-                    coords.put(targetLat)
-                    geometry.put("coordinates", coords)
-                    feature.put("geometry", geometry)
-
-                    val properties = org.json.JSONObject()
-                    properties.put("desc", "Resection")
-                    feature.put("properties", properties)
-
-                    features.put(feature)
-                }
+                features.put(feature)
             }
         }
 
@@ -1506,7 +1538,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         val intent = Intent(Intent.ACTION_SEND)
         intent.type = "text/plain"
         intent.putExtra(Intent.EXTRA_TEXT, jsonStr)
-        startActivity(Intent.createChooser(intent, "Share via"))
+        startActivity(Intent.createChooser(intent, "Share Observations via"))
     }
 
     private fun drawTriangulationPointsOnMap() {

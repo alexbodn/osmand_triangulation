@@ -88,7 +88,6 @@
                     android:textSize="12sp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:textColor="?attr/colorOnPrimary"
                     app:iconTint="?attr/colorOnPrimary"
                     android:enabled="false" />

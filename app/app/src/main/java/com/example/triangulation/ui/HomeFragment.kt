@@ -1340,6 +1340,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         val lon1 = Math.toRadians(r1.lon)
         val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
         val isReverseMode = forceReverseMode ?: (sharedPrefs.getInt("intersectionMode", 0) == 0) // Index 0 is Resection (Reverse)
+
         val brng1 = if (isReverseMode) Math.toRadians(r1.backAzimuth.toDouble()) else Math.toRadians(r1.azimuth.toDouble())
 
         val lat2 = Math.toRadians(r2.lat)
@@ -1369,10 +1370,21 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
         val lat3 = asin(sin(lat1)*cos(dist13) + cos(lat1)*sin(dist13)*cos(brng1))
         val dLon13 = atan2(sin(brng1)*sin(dist13)*cos(lat1), cos(dist13) - sin(lat1)*sin(lat3))
-        val lon3 = lon1 + dLon13
+        var lon3 = lon1 + dLon13
 
-        val intersectLat = Math.toDegrees(lat3)
-        val intersectLon = Math.toDegrees(lon3)
+        lon3 = (lon3 + 3*Math.PI) % (2*Math.PI) - Math.PI
+
+        var intersectLat = Math.toDegrees(lat3)
+        var intersectLon = Math.toDegrees(lon3)
+
+        // Great-circle intersection naturally yields two antipodal points. If the lines are diverging (like when
+        // calculating resection via back-azimuths), the standard formula solves for the antipodal point wrapped around
+        // the earth. We can detect this mathematically if the spherical distance resolved is > PI/2 (a quarter of the globe).
+        if (Math.abs(dist13) > Math.PI / 2) {
+            intersectLat = -intersectLat
+            intersectLon = (intersectLon + 180.0 + 360.0) % 360.0
+            if (intersectLon > 180.0) intersectLon -= 360.0
+        }
 
         return Pair(intersectLat, intersectLon)
     }

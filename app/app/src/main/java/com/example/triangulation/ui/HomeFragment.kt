@@ -139,7 +139,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                         return
                     }
 
-                    btnIntersection.text = firstWord.uppercase()
+                    btnIntersection.text = firstWord.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
 
                     val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
                     sharedPrefs.edit().putInt("intersectionMode", position).apply()

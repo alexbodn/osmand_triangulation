@@ -1377,15 +1377,6 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         var intersectLat = Math.toDegrees(lat3)
         var intersectLon = Math.toDegrees(lon3)
 
-        // Great-circle intersection naturally yields two antipodal points. If the lines are diverging (like when
-        // calculating resection via back-azimuths), the standard formula solves for the antipodal point wrapped around
-        // the earth. We can detect this mathematically if the spherical distance resolved is > PI/2 (a quarter of the globe).
-        if (Math.abs(dist13) > Math.PI / 2) {
-            intersectLat = -intersectLat
-            intersectLon = (intersectLon + 180.0 + 360.0) % 360.0
-            if (intersectLon > 180.0) intersectLon -= 360.0
-        }
-
         return Pair(intersectLat, intersectLon)
     }
 

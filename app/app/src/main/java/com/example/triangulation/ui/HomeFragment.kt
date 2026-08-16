@@ -222,6 +222,25 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                 }
             }
 
+            val btnCancelEdit = view.findViewById<android.widget.ImageButton>(R.id.btnCancelEdit)
+            btnCancelEdit.setOnClickListener {
+                etAzimuth.clearFocus()
+                val imm = requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.hideSoftInputFromWindow(etAzimuth.windowToken, 0)
+
+                currentLat = null
+                currentLon = null
+                rawReceivedParameter = null
+
+                val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
+                val defaultManual = sharedPrefs.getBoolean("isManualAzimuthChecked", false)
+                cbManualAzimuth.tag = "suppress_save"
+                cbManualAzimuth.isChecked = defaultManual
+                cbManualAzimuth.tag = null
+
+                refreshUIForCurrentLocation()
+            }
+
             sensorManager = requireActivity().getSystemService(Context.SENSOR_SERVICE) as SensorManager
             rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
 
@@ -1615,9 +1634,17 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             // Thread safe: pass mode via parameter or calculate before thread
             val isReverseMode = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE).getInt("intersectionMode", 0) == 0
             val bearing = if (isReverseMode) reading.backAzimuth.toDouble() else reading.azimuth.toDouble()
-            val point2 = calculateDestination(reading.lat, reading.lon, bearing, dist)
 
-            gpxStr.append("      <trkpt lat=\"${point2.first}\" lon=\"${point2.second}\" />\n")
+            // OsmAnd fails to draw long great circle segments correctly over the horizon if we just provide
+            // the start and end points. We must inject intermediate track points.
+            var currentDist = 0.0
+            val stepDist = 50.0 // 50 km steps
+            while (currentDist < dist) {
+                currentDist += stepDist
+                if (currentDist > dist) currentDist = dist
+                val pt = calculateDestination(reading.lat, reading.lon, bearing, currentDist)
+                gpxStr.append("      <trkpt lat=\"${pt.first}\" lon=\"${pt.second}\" />\n")
+            }
             gpxStr.append("    </trkseg>\n")
         }
         gpxStr.append("  </trk>\n")
@@ -1685,6 +1712,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         tvSelectReadingText.visibility = if (hasLocation) View.VISIBLE else View.INVISIBLE
         cbManualAzimuth.isEnabled = hasLocation
         etAzimuth.isEnabled = hasLocation && cbManualAzimuth.isChecked
+        view?.findViewById<View>(R.id.btnCancelEdit)?.visibility = if (hasLocation) View.VISIBLE else View.GONE
 
         if (hasLocation && rawReceivedParameter != null) {
             requireActivity().title = rawReceivedParameter

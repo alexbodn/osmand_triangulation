@@ -221,6 +221,16 @@
                 android:textAlignment="center" />
 
         </com.google.android.material.textfield.TextInputLayout>
+
+        <ImageButton
+            android:id="@+id/btnCancelEdit"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:tint="?attr/colorOnSurface"
+            android:contentDescription="Cancel Editing" />
     </LinearLayout>
 
     <LinearLayout

@@ -178,12 +178,13 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             var isEditingAzimuth = false
             etAzimuth.setOnFocusChangeListener { _, hasFocus ->
                 isEditingAzimuth = hasFocus
+                val hasLocation = currentLat != null && currentLon != null
                 if (hasFocus) {
                     view.findViewById<View>(R.id.svPoints).visibility = View.GONE
                     view.findViewById<View>(R.id.llArrowContainer).visibility = View.VISIBLE
                 } else {
                     view.findViewById<View>(R.id.svPoints).visibility = View.VISIBLE
-                    view.findViewById<View>(R.id.llArrowContainer).visibility = View.VISIBLE
+                    view.findViewById<View>(R.id.llArrowContainer).visibility = if (hasLocation) View.VISIBLE else View.GONE
                 }
             }
 
@@ -203,7 +204,7 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
                         etAzimuth.clearFocus()
                     }
                     view.findViewById<View>(R.id.svPoints).visibility = View.VISIBLE
-                    view.findViewById<View>(R.id.llArrowContainer).visibility = View.VISIBLE
+                    view.findViewById<View>(R.id.llArrowContainer).visibility = if (hasLocation) View.VISIBLE else View.GONE
                 }
             }
 
@@ -224,13 +225,13 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
 
             val btnCancelEdit = view.findViewById<android.widget.ImageButton>(R.id.btnCancelEdit)
             btnCancelEdit.setOnClickListener {
-                etAzimuth.clearFocus()
-                val imm = requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                imm.hideSoftInputFromWindow(etAzimuth.windowToken, 0)
-
                 currentLat = null
                 currentLon = null
                 rawReceivedParameter = null
+
+                etAzimuth.clearFocus()
+                val imm = requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.hideSoftInputFromWindow(etAzimuth.windowToken, 0)
 
                 val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
                 val defaultManual = sharedPrefs.getBoolean("isManualAzimuthChecked", false)
@@ -1360,6 +1361,9 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
         val sharedPrefs = requireActivity().getSharedPreferences("triangulation_prefs", Context.MODE_PRIVATE)
         val isReverseMode = forceReverseMode ?: (sharedPrefs.getInt("intersectionMode", 0) == 0) // Index 0 is Resection (Reverse)
 
+        // In Intersection, the observer is at the base pointing forward towards the target (use azimuth).
+        // In Resection, the observer is at the target pointing forward towards the base.
+        // To find the observer's location from the bases, we must use back-azimuths pointing back at the target.
         val brng1 = if (isReverseMode) Math.toRadians(r1.backAzimuth.toDouble()) else Math.toRadians(r1.azimuth.toDouble())
 
         val lat2 = Math.toRadians(r2.lat)
@@ -1623,7 +1627,8 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             val dist = if (selectedLocations.size >= 2) {
                 val cog = calculateCenterOfGravity()
                 if (cog != null) {
-                    calculateDistance(reading.lat, reading.lon, cog.first, cog.second) * 1.5
+                    val distanceToTarget = calculateDistance(reading.lat, reading.lon, cog.first, cog.second)
+                    java.lang.Math.min(distanceToTarget * 1.5, distanceToTarget + 100.0)
                 } else {
                     defaultDist
                 }
@@ -1780,19 +1785,19 @@ class HomeFragment : androidx.fragment.app.Fragment(), android.hardware.SensorEv
             when (lastAccuracy) {
                 SensorManager.SENSOR_STATUS_ACCURACY_HIGH -> {
                     ivAccuracyIcon.setColorFilter(android.graphics.Color.GREEN)
-                    tvAccuracyText.text = "Accuracy: High"
+                    tvAccuracyText.text = "Compass accuracy: High"
                 }
                 SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM -> {
                     ivAccuracyIcon.setColorFilter(android.graphics.Color.YELLOW)
-                    tvAccuracyText.text = "Accuracy: Medium"
+                    tvAccuracyText.text = "Compass accuracy: Medium"
                 }
                 SensorManager.SENSOR_STATUS_ACCURACY_LOW -> {
                     ivAccuracyIcon.setColorFilter(android.graphics.Color.rgb(255, 165, 0))
-                    tvAccuracyText.text = "Accuracy: Low - please move phone in an 8 shape (♾️)"
+                    tvAccuracyText.text = "Compass accuracy: Low - please move phone in an 8 shape (♾️)"
                 }
                 else -> {
                     ivAccuracyIcon.setColorFilter(android.graphics.Color.RED)
-                    tvAccuracyText.text = "Accuracy: Unreliable - please move phone in an 8 shape (♾️)"
+                    tvAccuracyText.text = "Compass accuracy: Unreliable - please move phone in an 8 shape (♾️)"
                 }
             }
         }

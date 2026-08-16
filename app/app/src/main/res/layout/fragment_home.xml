@@ -84,11 +84,11 @@
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp"
                     app:icon="@drawable/ic_map"
-                    android:text="RESECTION"
-                    android:textSize="12sp"
+                    android:text="Resection"
+                    android:textSize="10sp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:textAllCaps="false"
                     android:textColor="?attr/colorOnPrimary"
                     app:iconTint="?attr/colorOnPrimary"
                     android:enabled="false" />
@@ -126,9 +126,10 @@
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
             app:icon="@drawable/ic_upload"
-            android:textSize="12sp"
+            android:textSize="10sp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
+            android:textAllCaps="false"
             android:textColor="?attr/colorOnPrimary"
             app:iconTint="?attr/colorOnPrimary"
             android:text="Import" />
@@ -148,9 +149,10 @@
             android:paddingEnd="12dp"
             android:layout_marginEnd="8dp"
             app:icon="@drawable/ic_share"
-            android:textSize="12sp"
+            android:textSize="10sp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
+            android:textAllCaps="false"
             android:textColor="?attr/colorOnPrimary"
             app:iconTint="?attr/colorOnPrimary"
             android:text="Share" />
@@ -219,6 +221,16 @@
                 android:textAlignment="center" />
 
         </com.google.android.material.textfield.TextInputLayout>
+
+        <ImageButton
+            android:id="@+id/btnCancelEdit"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:tint="?attr/colorOnSurface"
+            android:contentDescription="Cancel Editing" />
     </LinearLayout>
 
     <LinearLayout
@@ -289,7 +301,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:text="Unreliable - please move phone in an 8 shape"
+                android:text="Compass accuracy: Unreliable - please move phone in an 8 shape (♾️)"
                 android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
